@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Radio, Facebook, Twitter, Instagram, Youtube, Mail } from "lucide-react";
+import { Radio, Mail, Share2, AtSign, Camera, Video } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -70,7 +70,7 @@ export function SiteFooter() {
             <li className="flex items-center gap-1"><Mail className="h-3 w-3" /> omaryw003@gmail.com</li>
           </ul>
           <div className="flex gap-3 mt-4">
-            {[Facebook, Twitter, Instagram, Youtube].map((I, i) => (
+            {[Share2, AtSign, Camera, Video].map((I, i) => (
               <a key={i} href="#" className="p-2 rounded-full bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition">
                 <I className="h-4 w-4" />
               </a>
