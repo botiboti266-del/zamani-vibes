@@ -52,7 +52,7 @@ function PodcastsPage() {
   const nav = Route.useNavigate();
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    nav({ search: (prev) => ({ ...prev, q: search || undefined }) });
+    nav({ search: (prev: typeof Route.types.fullSearchSchema) => ({ ...prev, q: search || undefined }) });
   };
 
   return (

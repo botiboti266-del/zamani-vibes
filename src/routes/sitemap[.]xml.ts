@@ -13,10 +13,11 @@ export const Route = createFileRoute("/sitemap.xml")({
           supabase.from("blog_posts").select("slug,updated_at").eq("status", "published"),
         ]);
 
-        const urls = [
-          ...staticEntries.map((p) => ({ loc: p, changefreq: "weekly", priority: p === "/" ? "1.0" : "0.7" })),
-          ...(podcasts ?? []).map((p) => ({ loc: `/podcasts/${p.slug}`, lastmod: p.updated_at, changefreq: "monthly", priority: "0.8" })),
-          ...(posts ?? []).map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.updated_at, changefreq: "monthly", priority: "0.6" })),
+        type Entry = { loc: string; lastmod?: string; changefreq: string; priority: string };
+        const urls: Entry[] = [
+          ...staticEntries.map((p): Entry => ({ loc: p, changefreq: "weekly", priority: p === "/" ? "1.0" : "0.7" })),
+          ...(podcasts ?? []).map((p): Entry => ({ loc: `/podcasts/${p.slug}`, lastmod: p.updated_at, changefreq: "monthly", priority: "0.8" })),
+          ...(posts ?? []).map((p): Entry => ({ loc: `/blog/${p.slug}`, lastmod: p.updated_at, changefreq: "monthly", priority: "0.6" })),
         ];
 
         const body = urls.map((u) =>
