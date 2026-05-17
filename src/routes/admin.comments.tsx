@@ -29,8 +29,8 @@ function Comments() {
   return (
     <div className="space-y-8 animate-fade-up">
       <div><h1 className="font-display text-3xl flex items-center gap-2"><MessageCircle className="h-7 w-7" /> Comment moderation</h1></div>
-      <Section title="Podcast comments" items={podcasts.data ?? []} onDelete={(id) => del("podcast_comments", id)} hrefKey="podcast" />
-      <Section title="Blog comments" items={blog.data ?? []} onDelete={(id) => del("blog_comments", id)} hrefKey="post" />
+      <Section title="Podcast comments" items={podcasts.data ?? []} onDelete={(id: string) => del("podcast_comments", id)} hrefKey="podcast" />
+      <Section title="Blog comments" items={blog.data ?? []} onDelete={(id: string) => del("blog_comments", id)} hrefKey="post" />
     </div>
   );
 }
