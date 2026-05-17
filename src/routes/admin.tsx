@@ -1,14 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { AdminGuard } from "@/components/admin/admin-guard";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 export const Route = createFileRoute("/admin")({
   component: () => (
-    <div className="mx-auto max-w-2xl px-4 py-20 text-center">
-      <h1 className="font-display text-4xl">Admin dashboard</h1>
-      <p className="mt-4 text-muted-foreground">
-        The full admin panel (podcast & blog CRUD, recording studio, analytics, comment moderation,
-        media library, newsletter management) is shipped in Phase 2.
-      </p>
-    </div>
+    <AdminGuard>
+      <AdminShell>
+        <Outlet />
+      </AdminShell>
+    </AdminGuard>
   ),
   head: () => ({ meta: [{ title: "Admin — Sauti ya Zamani" }, { name: "robots", content: "noindex" }] }),
 });
