@@ -99,14 +99,23 @@ export function PodcastForm({ existing }: { existing?: PodcastRow }) {
     e.preventDefault();
     setSaving(true);
     const payload: any = {
-      ...form,
+      title: form.title,
       slug: form.slug || slugify(form.title),
+      description: form.description,
+      show_notes: form.show_notes,
+      summary: form.summary,
+      cover_image: form.cover_image,
+      audio_url: form.audio_url,
+      duration: form.duration,
+      category_id: form.category_id,
       tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
+      status: form.status,
+      scheduled_for: form.scheduled_for || null,
+      featured: form.featured,
+      trending: form.trending,
       author_id: user!.id,
-      published_at: form.status === "published" ? (form.published_at ?? new Date().toISOString()) : null,
+      published_at: form.status === "published" ? new Date().toISOString() : null,
     };
-    delete payload.published_at;
-    if (form.status === "published") payload.published_at = new Date().toISOString();
     const op = existing?.id
       ? supabase.from("podcasts").update(payload).eq("id", existing.id)
       : supabase.from("podcasts").insert(payload);
