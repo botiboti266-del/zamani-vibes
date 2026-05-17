@@ -67,7 +67,7 @@ export function SiteFooter() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li><Link to="/privacy" className="hover:text-primary">Privacy</Link></li>
             <li><Link to="/terms" className="hover:text-primary">Terms</Link></li>
-            <li className="flex items-center gap-1"><Mail className="h-3 w-3" /> omaryw003@gmail.com</li>
+            <li className="flex items-center gap-1"><Mail className="h-3 w-3" /><span>omaryw003@gmail.com</span></li>
           </ul>
           <div className="flex gap-3 mt-4">
             {[Share2, AtSign, Camera, Video].map((I, i) => (
