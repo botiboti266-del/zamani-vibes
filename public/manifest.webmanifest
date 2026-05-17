@@ -1,0 +1,12 @@
+{
+  "name": "Sauti ya Zamani",
+  "short_name": "Sauti",
+  "description": "Old-school Bongo & Kenyan podcasts and stories.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1428",
+  "theme_color": "#1a1428",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}
