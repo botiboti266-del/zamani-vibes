@@ -56,3 +56,14 @@ export const aiTranscribe = createServerFn({ method: "POST" })
     ]);
     return { notes: out };
   });
+
+export const aiTranscript = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { title: string; description: string; durationSeconds?: number }) => d)
+  .handler(async ({ data }) => {
+    const out = await callAI([
+      { role: "system", content: "You are a transcription assistant for an East African podcast. Given a brief, generate a realistic, well-formatted long-form transcript with speaker labels (HOST: / GUEST:) and natural conversation. Mix Swahili greetings sparingly. Return plain text only." },
+      { role: "user", content: `Title: ${data.title}\nDuration: ${data.durationSeconds ?? 600}s\nBrief:\n${data.description}` },
+    ]);
+    return { transcript: out };
+  });

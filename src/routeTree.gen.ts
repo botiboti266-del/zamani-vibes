@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PodcastsRouteImport } from './routes/podcasts'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -26,8 +27,10 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSubscribersRouteImport } from './routes/admin.subscribers'
 import { Route as AdminStudioRouteImport } from './routes/admin.studio'
+import { Route as AdminSeoRouteImport } from './routes/admin.seo'
 import { Route as AdminPodcastsRouteImport } from './routes/admin.podcasts'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
+import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminBlogRouteImport } from './routes/admin.blog'
@@ -47,6 +50,11 @@ const TermsRoute = TermsRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -124,6 +132,11 @@ const AdminStudioRoute = AdminStudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSeoRoute = AdminSeoRouteImport.update({
+  id: '/seo',
+  path: '/seo',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPodcastsRoute = AdminPodcastsRouteImport.update({
   id: '/podcasts',
   path: '/podcasts',
@@ -132,6 +145,11 @@ const AdminPodcastsRoute = AdminPodcastsRouteImport.update({
 const AdminMessagesRoute = AdminMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHomepageRoute = AdminHomepageRouteImport.update({
+  id: '/homepage',
+  path: '/homepage',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCommentsRoute = AdminCommentsRouteImport.update({
@@ -195,14 +213,17 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/podcasts': typeof PodcastsRouteWithChildren
   '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/blog': typeof AdminBlogRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
+  '/admin/homepage': typeof AdminHomepageRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/podcasts': typeof AdminPodcastsRouteWithChildren
+  '/admin/seo': typeof AdminSeoRoute
   '/admin/studio': typeof AdminStudioRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
@@ -225,12 +246,15 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/podcasts': typeof PodcastsRouteWithChildren
   '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
+  '/admin/homepage': typeof AdminHomepageRoute
   '/admin/messages': typeof AdminMessagesRoute
+  '/admin/seo': typeof AdminSeoRoute
   '/admin/studio': typeof AdminStudioRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
@@ -255,14 +279,17 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/podcasts': typeof PodcastsRouteWithChildren
   '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/blog': typeof AdminBlogRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
+  '/admin/homepage': typeof AdminHomepageRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/podcasts': typeof AdminPodcastsRouteWithChildren
+  '/admin/seo': typeof AdminSeoRoute
   '/admin/studio': typeof AdminStudioRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
@@ -288,14 +315,17 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/podcasts'
     | '/privacy'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
     | '/admin/analytics'
     | '/admin/blog'
     | '/admin/categories'
     | '/admin/comments'
+    | '/admin/homepage'
     | '/admin/messages'
     | '/admin/podcasts'
+    | '/admin/seo'
     | '/admin/studio'
     | '/admin/subscribers'
     | '/admin/users'
@@ -318,12 +348,15 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/podcasts'
     | '/privacy'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
     | '/admin/analytics'
     | '/admin/categories'
     | '/admin/comments'
+    | '/admin/homepage'
     | '/admin/messages'
+    | '/admin/seo'
     | '/admin/studio'
     | '/admin/subscribers'
     | '/admin/users'
@@ -347,14 +380,17 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/podcasts'
     | '/privacy'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
     | '/admin/analytics'
     | '/admin/blog'
     | '/admin/categories'
     | '/admin/comments'
+    | '/admin/homepage'
     | '/admin/messages'
     | '/admin/podcasts'
+    | '/admin/seo'
     | '/admin/studio'
     | '/admin/subscribers'
     | '/admin/users'
@@ -379,6 +415,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   PodcastsRoute: typeof PodcastsRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
 }
@@ -397,6 +434,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -504,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudioRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/seo': {
+      id: '/admin/seo'
+      path: '/seo'
+      fullPath: '/admin/seo'
+      preLoaderRoute: typeof AdminSeoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/podcasts': {
       id: '/admin/podcasts'
       path: '/podcasts'
@@ -516,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/admin/messages'
       preLoaderRoute: typeof AdminMessagesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/homepage': {
+      id: '/admin/homepage'
+      path: '/homepage'
+      fullPath: '/admin/homepage'
+      preLoaderRoute: typeof AdminHomepageRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/comments': {
@@ -628,8 +686,10 @@ interface AdminRouteChildren {
   AdminBlogRoute: typeof AdminBlogRouteWithChildren
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
+  AdminHomepageRoute: typeof AdminHomepageRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminPodcastsRoute: typeof AdminPodcastsRouteWithChildren
+  AdminSeoRoute: typeof AdminSeoRoute
   AdminStudioRoute: typeof AdminStudioRoute
   AdminSubscribersRoute: typeof AdminSubscribersRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -641,8 +701,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBlogRoute: AdminBlogRouteWithChildren,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCommentsRoute: AdminCommentsRoute,
+  AdminHomepageRoute: AdminHomepageRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminPodcastsRoute: AdminPodcastsRouteWithChildren,
+  AdminSeoRoute: AdminSeoRoute,
   AdminStudioRoute: AdminStudioRoute,
   AdminSubscribersRoute: AdminSubscribersRoute,
   AdminUsersRoute: AdminUsersRoute,
@@ -683,19 +745,10 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   PodcastsRoute: PodcastsRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

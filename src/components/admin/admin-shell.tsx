@@ -1,11 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Mic, FileText, MessageSquare, Mail, Users,
-  Tag, Music4, BarChart3, Inbox,
+  Tag, Music4, BarChart3, Inbox, Home, Globe,
 } from "lucide-react";
 
 const ITEMS = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+  { to: "/admin/homepage", label: "Homepage", icon: Home },
   { to: "/admin/podcasts", label: "Podcasts", icon: Mic },
   { to: "/admin/blog", label: "Blog", icon: FileText },
   { to: "/admin/studio", label: "Studio", icon: Music4 },
@@ -14,6 +15,7 @@ const ITEMS = [
   { to: "/admin/subscribers", label: "Newsletter", icon: Mail },
   { to: "/admin/categories", label: "Categories", icon: Tag },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/admin/seo", label: "SEO", icon: Globe },
   { to: "/admin/users", label: "Users", icon: Users },
 ];
 

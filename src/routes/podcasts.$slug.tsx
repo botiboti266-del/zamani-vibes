@@ -1,11 +1,12 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type Track } from "@/components/player/player-context";
 import { useAuth } from "@/hooks/use-auth";
-import { Play, Heart, Share2, Download, MessageCircle, Headphones, Clock } from "lucide-react";
+import { Play, Heart, Share2, Download, MessageCircle, Headphones, Clock, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { renderMarkdown } from "@/lib/markdown";
 
 export const Route = createFileRoute("/podcasts/$slug")({
   component: PodcastPage,
@@ -22,6 +23,7 @@ function PodcastPage() {
   const player = usePlayer();
   const { user } = useAuth();
   const [comment, setComment] = useState("");
+  const [tab, setTab] = useState<"notes" | "transcript">("notes");
 
   const q = useQuery({
     queryKey: ["podcast", slug],
@@ -30,9 +32,8 @@ function PodcastPage() {
         .from("podcasts")
         .select("*, category:podcast_categories(name,slug)")
         .eq("slug", slug)
-        .eq("status", "published")
         .maybeSingle();
-      if (error || !data) throw notFound();
+      if (error) throw error;
       return data;
     },
   });
@@ -41,12 +42,24 @@ function PodcastPage() {
     queryKey: ["comments", q.data?.id],
     enabled: !!q.data?.id,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from("podcast_comments")
-        .select("id,content,created_at,user_id, profile:profiles!podcast_comments_user_id_fkey(display_name,avatar_url)")
+        .select("id,content,created_at,user_id")
         .eq("podcast_id", q.data!.id)
         .order("created_at", { ascending: false });
-      return data ?? [];
+      const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+      let profiles: any[] = [];
+      if (ids.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id,display_name,avatar_url")
+          .in("user_id", ids);
+        profiles = profs ?? [];
+      }
+      return (rows ?? []).map((r) => ({
+        ...r,
+        profile: profiles.find((p) => p.user_id === r.user_id) ?? null,
+      }));
     },
   });
 
@@ -64,18 +77,37 @@ function PodcastPage() {
     },
   });
 
-  // increment listen count once
   useEffect(() => {
     if (!q.data?.id) return;
     const key = `syz-listened-${q.data.id}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    supabase.rpc as unknown;
     supabase.from("podcasts").update({ listen_count: (q.data.listen_count ?? 0) + 1 }).eq("id", q.data.id).then(() => {});
   }, [q.data?.id]); // eslint-disable-line
 
-  if (q.isLoading) return <div className="mx-auto max-w-5xl px-4 py-20 text-center text-muted-foreground">Loading...</div>;
-  if (!q.data) return null;
+  if (q.isLoading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-20">
+        <div className="grid lg:grid-cols-[1fr_2fr] gap-10">
+          <div className="aspect-square rounded-3xl glass animate-pulse" />
+          <div className="space-y-4">
+            <div className="h-10 w-3/4 rounded-xl bg-secondary animate-pulse" />
+            <div className="h-4 w-full rounded bg-secondary animate-pulse" />
+            <div className="h-4 w-5/6 rounded bg-secondary animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!q.data) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-24 text-center">
+        <h1 className="font-display text-3xl mb-2">Episode not found</h1>
+        <p className="text-muted-foreground mb-6">It may have been unpublished or moved.</p>
+        <Link to="/podcasts" className="inline-block px-6 py-3 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine">Browse episodes</Link>
+      </div>
+    );
+  }
   const p = q.data;
 
   const onPlay = () => {
@@ -125,6 +157,9 @@ function PodcastPage() {
           <button onClick={onPlay} className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-gradient-gold text-primary-foreground font-semibold shadow-3d btn-shine hover:scale-[1.02] transition">
             <Play className="h-5 w-5" /> Play episode
           </button>
+          {p.audio_url && (
+            <audio src={p.audio_url} controls className="w-full" preload="metadata" />
+          )}
           <div className="grid grid-cols-3 gap-2">
             <button onClick={toggleLike} className={`glass rounded-xl py-3 flex flex-col items-center gap-1 hover:bg-secondary transition ${likes.data?.liked ? "text-[color:var(--gold)]" : ""}`}>
               <Heart className={`h-4 w-4 ${likes.data?.liked ? "fill-current" : ""}`} />
@@ -153,13 +188,34 @@ function PodcastPage() {
             {p.duration ? <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> {Math.floor(p.duration / 60)} min</span> : null}
             {p.published_at && <span>{new Date(p.published_at).toLocaleDateString()}</span>}
           </div>
-          {p.description && <p className="text-lg text-foreground/90">{p.description}</p>}
-          {p.show_notes && (
-            <div className="glass rounded-2xl p-6">
-              <h3 className="font-display text-xl mb-3">Show notes</h3>
-              <div className="prose prose-invert max-w-none text-sm whitespace-pre-wrap text-muted-foreground">{p.show_notes}</div>
+          {p.summary && <p className="text-lg text-foreground/90 italic">{p.summary}</p>}
+          {p.description && <p className="text-base text-muted-foreground whitespace-pre-wrap">{p.description}</p>}
+
+          {(p.show_notes || p.transcript) && (
+            <div className="glass rounded-2xl overflow-hidden">
+              <div className="flex border-b border-border/50">
+                {p.show_notes && (
+                  <button onClick={() => setTab("notes")} className={`px-5 py-3 text-sm font-medium inline-flex items-center gap-2 transition ${tab === "notes" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    <FileText className="h-4 w-4" /> Show notes
+                  </button>
+                )}
+                {p.transcript && (
+                  <button onClick={() => setTab("transcript")} className={`px-5 py-3 text-sm font-medium inline-flex items-center gap-2 transition ${tab === "transcript" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    <FileText className="h-4 w-4" /> Transcript
+                  </button>
+                )}
+              </div>
+              <div className="p-6">
+                {tab === "notes" && p.show_notes && (
+                  <div className="prose prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(p.show_notes) }} />
+                )}
+                {tab === "transcript" && p.transcript && (
+                  <div className="prose prose-invert max-w-none text-sm whitespace-pre-wrap text-foreground/90 max-h-[500px] overflow-y-auto">{p.transcript}</div>
+                )}
+              </div>
             </div>
           )}
+
           {p.tags && p.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {p.tags.map((t: string) => (
@@ -168,7 +224,6 @@ function PodcastPage() {
             </div>
           )}
 
-          {/* Comments */}
           <div className="mt-10">
             <h3 className="font-display text-2xl flex items-center gap-2 mb-4"><MessageCircle className="h-5 w-5" /> Conversation</h3>
             <form onSubmit={submitComment} className="mb-6">
@@ -189,14 +244,14 @@ function PodcastPage() {
                 <div key={c.id} className="glass rounded-2xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 rounded-full bg-gradient-gold flex items-center justify-center text-xs font-semibold text-primary-foreground">
-                      {(c.profile?.display_name ?? "?")[0].toUpperCase()}
+                      {(c.profile?.display_name ?? "?")[0]?.toUpperCase() ?? "?"}
                     </div>
                     <div>
                       <div className="text-sm font-semibold">{c.profile?.display_name ?? "Listener"}</div>
                       <div className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
                     </div>
                   </div>
-                  <p className="text-sm">{c.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">{c.content}</p>
                 </div>
               ))}
               {comments.data && comments.data.length === 0 && (

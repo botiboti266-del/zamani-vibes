@@ -25,6 +25,7 @@ export function PodcastCard({ podcast }: { podcast: PodcastCardData }) {
 
   const onPlay = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!podcast.audio_url) return;
     const t: Track = {
       id: podcast.id,
@@ -55,18 +56,18 @@ export function PodcastCard({ podcast }: { podcast: PodcastCardData }) {
             <Headphones className="h-12 w-12 text-muted-foreground opacity-50" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent pointer-events-none" />
         {podcast.audio_url && (
           <button
             onClick={onPlay}
             aria-label="Play"
-            className="absolute bottom-3 right-3 h-12 w-12 rounded-full bg-gradient-gold text-primary-foreground flex items-center justify-center shadow-3d opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition btn-shine"
+            className="absolute bottom-3 right-3 h-12 w-12 rounded-full bg-gradient-gold text-primary-foreground flex items-center justify-center shadow-3d opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition btn-shine z-10"
           >
             <Play className="h-5 w-5 ml-0.5" />
           </button>
         )}
         {podcast.category?.name && (
-          <span className="absolute top-3 left-3 text-[10px] uppercase tracking-widest px-2 py-1 rounded-full glass">
+          <span className="absolute top-3 left-3 text-[10px] uppercase tracking-widest px-2 py-1 rounded-full glass pointer-events-none">
             {podcast.category.name}
           </span>
         )}
