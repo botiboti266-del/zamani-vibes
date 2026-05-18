@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
 });
 
 async function fetchHome() {
-  const [featured, trending, latest, categories, posts] = await Promise.all([
+  const [featured, trending, latest, categories, posts, settings] = await Promise.all([
     supabase.from("podcasts").select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name)")
       .eq("status", "published").eq("featured", true).order("published_at", { ascending: false }).limit(3),
     supabase.from("podcasts").select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name)")
@@ -29,22 +29,34 @@ async function fetchHome() {
       .eq("status", "published").order("published_at", { ascending: false }).limit(8),
     supabase.from("podcast_categories").select("*").order("name"),
     supabase.from("blog_posts").select("id,title,slug,excerpt,cover_image,reading_minutes,published_at").eq("status", "published").order("published_at", { ascending: false }).limit(3),
+    supabase.from("site_settings").select("value").eq("key", "homepage").maybeSingle(),
   ]);
+  const cfg = (settings.data?.value as any) ?? {};
   return {
     featured: (featured.data ?? []) as PodcastCardData[],
     trending: (trending.data ?? []) as PodcastCardData[],
     latest: (latest.data ?? []) as PodcastCardData[],
     categories: categories.data ?? [],
     posts: posts.data ?? [],
+    hero: cfg.hero ?? null,
+    banner: cfg.banner ?? null,
   };
 }
 
 function Home() {
   const { data } = useQuery({ queryKey: ["home"], queryFn: fetchHome });
-  const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [] };
+  const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], hero: null as any, banner: null as any };
+  const hero = d.hero;
+  const banner = d.banner;
 
   return (
     <div>
+      {banner?.enabled && banner.text && (
+        <a href={banner.linkUrl || "#"} className="block bg-gradient-gold text-primary-foreground text-center text-sm py-2.5 px-4 hover:opacity-95 transition">
+          <span className="font-semibold">{banner.text}</span>
+          {banner.linkLabel && <span className="ml-2 underline underline-offset-2">{banner.linkLabel} →</span>}
+        </a>
+      )}
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10">
@@ -57,19 +69,21 @@ function Home() {
               <Sparkles className="h-3 w-3 text-[color:var(--gold)]" /> Now streaming
             </span>
             <h1 className="font-display text-5xl md:text-7xl leading-[0.95]">
-              The nostalgic <span className="text-gradient-gold italic">sauti</span><br />
-              of <span className="text-gradient-gold">East Africa</span>.
+              {hero?.headline ? (
+                <span className="text-gradient-gold">{hero.headline}</span>
+              ) : (
+                <>The nostalgic <span className="text-gradient-gold italic">sauti</span><br />of <span className="text-gradient-gold">East Africa</span>.</>
+              )}
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl">
-              Old-school Bongo stories. Kenyan entertainment history. Long-form interviews with the
-              voices that shaped a generation. Press play — rudi nyuma kidogo.
+              {hero?.subheadline || "Old-school Bongo stories. Kenyan entertainment history. Long-form interviews with the voices that shaped a generation. Press play — rudi nyuma kidogo."}
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link to="/podcasts" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-gold text-primary-foreground font-semibold shadow-3d btn-shine hover:scale-105 transition">
-                <Headphones className="h-4 w-4" /> Browse podcasts
+                <Headphones className="h-4 w-4" /> {hero?.primaryCta || "Browse podcasts"}
               </Link>
               <Link to="/about" className="inline-flex items-center gap-2 px-6 py-3 rounded-full glass font-semibold hover:bg-secondary transition">
-                Our story <ArrowRight className="h-4 w-4" />
+                {hero?.secondaryCta || "Our story"} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
             <div className="flex gap-2 pt-2 items-end h-6">

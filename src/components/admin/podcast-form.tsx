@@ -14,6 +14,7 @@ interface PodcastRow {
   description: string | null;
   show_notes: string | null;
   summary: string | null;
+  transcript: string | null;
   cover_image: string | null;
   audio_url: string | null;
   duration: number | null;
@@ -26,7 +27,7 @@ interface PodcastRow {
 }
 
 const empty: PodcastRow = {
-  title: "", slug: "", description: "", show_notes: "", summary: "",
+  title: "", slug: "", description: "", show_notes: "", summary: "", transcript: "",
   cover_image: null, audio_url: null, duration: 0, category_id: null,
   tags: [], status: "draft", scheduled_for: null, featured: false, trending: false,
 };
@@ -104,6 +105,7 @@ export function PodcastForm({ existing }: { existing?: PodcastRow }) {
       description: form.description,
       show_notes: form.show_notes,
       summary: form.summary,
+      transcript: form.transcript,
       cover_image: form.cover_image,
       audio_url: form.audio_url,
       duration: form.duration,
@@ -146,6 +148,9 @@ export function PodcastForm({ existing }: { existing?: PodcastRow }) {
               <textarea rows={4} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} className={input} />
             </Field>
           )}
+          <Field label={<span className="flex items-center justify-between w-full"><span>Transcript (searchable)</span><button type="button" disabled={aiBusy} onClick={async () => { setAiBusy(true); try { const { aiTranscript } = await import("@/lib/ai.functions"); const r = await aiTranscript({ data: { title: form.title, description: form.description ?? "", durationSeconds: form.duration ?? 0 } }); setForm((f) => ({ ...f, transcript: r.transcript })); toast.success("Transcript drafted"); } catch (e: any) { toast.error(e?.message ?? "AI failed"); } finally { setAiBusy(false); } }} className="text-xs inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-gold text-primary-foreground btn-shine disabled:opacity-50">{aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI draft</button></span>}>
+            <textarea rows={8} value={form.transcript ?? ""} onChange={(e) => setForm({ ...form, transcript: e.target.value })} className={`${input} font-mono text-xs`} placeholder="HOST: Karibu...&#10;GUEST: Asante..." />
+          </Field>
           <Field label="Tags (comma-separated)">
             <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className={input} placeholder="bongo, classics, interview" />
           </Field>
