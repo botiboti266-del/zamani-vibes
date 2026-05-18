@@ -17,7 +17,7 @@ export const Route = createFileRoute("/podcasts")({
   head: () => ({
     meta: [
       { title: "All Podcasts — Sauti ya Zamani" },
-      { name: "description", content: "Browse every episode: old-school Bongo, Kenyan stories, music culture interviews." },
+      { name: "description", content: "Browse every episode: old-school Bongo, Kenyan stories, music culture interviews. Search by topic, tag, or transcript." },
       { property: "og:title", content: "All Podcasts — Sauti ya Zamani" },
       { property: "og:description", content: "Browse every Sauti ya Zamani episode." },
     ],
@@ -38,10 +38,15 @@ function PodcastsPage() {
     queryFn: async () => {
       let qb = supabase
         .from("podcasts")
-        .select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name,slug)")
+        .select("id,title,slug,description,cover_image,audio_url,duration,listen_count,transcript,show_notes,category:podcast_categories(name,slug)")
         .eq("status", "published")
         .order("published_at", { ascending: false });
-      if (q) qb = qb.ilike("title", `%${q}%`);
+      if (q) {
+        const term = q.replace(/[%,()]/g, "");
+        qb = qb.or(
+          `title.ilike.%${term}%,description.ilike.%${term}%,show_notes.ilike.%${term}%,transcript.ilike.%${term}%,summary.ilike.%${term}%`,
+        );
+      }
       const { data } = await qb;
       let rows = (data ?? []) as PodcastCardData[];
       if (category) rows = rows.filter((p: any) => p.category?.slug === category);
@@ -60,7 +65,7 @@ function PodcastsPage() {
       <div className="space-y-2 animate-fade-up">
         <span className="text-xs uppercase tracking-widest text-[color:var(--gold)]">Episodes</span>
         <h1 className="font-display text-4xl md:text-5xl">All podcasts</h1>
-        <p className="text-muted-foreground">Every conversation, story, and interview in one place.</p>
+        <p className="text-muted-foreground">Search titles, show notes, and full transcripts.</p>
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 flex flex-col md:flex-row gap-3">
@@ -69,7 +74,7 @@ function PodcastsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search episodes..."
+            placeholder="Search by topic, guest, or quote inside the transcript..."
             className="w-full pl-11 pr-4 py-3 rounded-full glass border border-border focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>

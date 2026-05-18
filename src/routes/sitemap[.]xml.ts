@@ -6,6 +6,10 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        const { data: seo } = await supabase.from("site_settings").select("value").eq("key", "seo").maybeSingle();
+        const enabled = (seo?.value as any)?.sitemapEnabled !== false;
+        if (!enabled) return new Response("", { status: 404 });
+
         const staticEntries = ["/", "/podcasts", "/blog", "/about", "/contact", "/privacy", "/terms"];
 
         const [{ data: podcasts }, { data: posts }] = await Promise.all([

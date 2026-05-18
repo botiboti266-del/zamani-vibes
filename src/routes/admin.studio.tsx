@@ -1,22 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Mic, Square, Pause, Play, Upload, Trash2, Loader2, Sparkles, Music4 } from "lucide-react";
+import {
+  Mic, Square, Pause, Play, Upload, Trash2, Loader2, Sparkles, Music4,
+  Volume2, Music2, Headphones, Radio, Save, Plus, Download,
+} from "lucide-react";
 import { aiTranscribe } from "@/lib/ai.functions";
 
-export const Route = createFileRoute("/admin/studio")({
-  component: Studio,
-});
+export const Route = createFileRoute("/admin/studio")({ component: Studio });
+
+interface Track {
+  id: string;
+  name: string;
+  url: string;
+}
 
 function Studio() {
   const { user } = useAuth();
+
+  // Recording state
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
+  const tickRef = useRef<number | null>(null);
+
+  // Audio context for mixing
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const destRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const micGainRef = useRef<GainNode | null>(null);
+  const musicGainRef = useRef<GainNode | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
+  const musicAnalyserRef = useRef<AnalyserNode | null>(null);
+  const musicElRef = useRef<HTMLAudioElement | null>(null);
+  const musicSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const duckingRafRef = useRef<number | null>(null);
+
   const [state, setState] = useState<"idle" | "recording" | "paused" | "done">("idle");
   const [seconds, setSeconds] = useState(0);
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -24,47 +47,177 @@ function Studio() {
   const [uploading, setUploading] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [notes, setNotes] = useState("");
-  const tickRef = useRef<number | null>(null);
+  const [title, setTitle] = useState("");
+
+  // Mixer
+  const [micVolume, setMicVolume] = useState(1);
+  const [musicVolume, setMusicVolume] = useState(0.4);
+  const [duckingEnabled, setDuckingEnabled] = useState(true);
+  const [duckedLevel, setDuckedLevel] = useState(0.1);
+  const [fadeInSec, setFadeInSec] = useState(2);
+  const [fadeOutSec, setFadeOutSec] = useState(3);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
+  const [musicLevel, setMusicLevel] = useState(0);
+
+  // Tracks library
+  const tracks = useQuery({
+    queryKey: ["bg-tracks"],
+    queryFn: async () => {
+      const { data } = await supabase.storage.from("background-music").list(user?.id ?? "", { sortBy: { column: "created_at", order: "desc" } });
+      if (!data) return [] as Track[];
+      return Promise.all(data.filter((f) => f.name && !f.name.endsWith("/")).map(async (f) => {
+        const path = `${user!.id}/${f.name}`;
+        const { data: signed } = await supabase.storage.from("background-music").createSignedUrl(path, 60 * 60);
+        return { id: path, name: f.name, url: signed?.signedUrl ?? "" } as Track;
+      }));
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (duckingRafRef.current) cancelAnimationFrame(duckingRafRef.current);
     if (tickRef.current) window.clearInterval(tickRef.current);
+    audioCtxRef.current?.close().catch(() => {});
   }, []);
 
-  const drawWave = (stream: MediaStream) => {
-    const ctx = new AudioContext();
-    const src = ctx.createMediaStreamSource(stream);
-    const an = ctx.createAnalyser();
-    an.fftSize = 256;
-    src.connect(an);
-    const buf = new Uint8Array(an.frequencyBinCount);
+  // Apply volume changes live
+  useEffect(() => {
+    if (micGainRef.current && audioCtxRef.current) {
+      micGainRef.current.gain.setTargetAtTime(micVolume, audioCtxRef.current.currentTime, 0.05);
+    }
+  }, [micVolume]);
+  useEffect(() => {
+    if (musicGainRef.current && audioCtxRef.current && !duckingEnabled) {
+      musicGainRef.current.gain.setTargetAtTime(musicVolume, audioCtxRef.current.currentTime, 0.05);
+    }
+  }, [musicVolume, duckingEnabled]);
+
+  const drawWave = () => {
     const canvas = canvasRef.current!;
     const c = canvas.getContext("2d")!;
+    const micAn = micAnalyserRef.current;
+    const musicAn = musicAnalyserRef.current;
+    if (!micAn) return;
+    const micBuf = new Uint8Array(micAn.frequencyBinCount);
+    const musicBuf = musicAn ? new Uint8Array(musicAn.frequencyBinCount) : null;
     const loop = () => {
-      an.getByteFrequencyData(buf);
-      c.clearRect(0, 0, canvas.width, canvas.height);
-      const w = canvas.width / buf.length;
-      for (let i = 0; i < buf.length; i++) {
-        const h = (buf[i] / 255) * canvas.height;
-        const grad = c.createLinearGradient(0, canvas.height - h, 0, canvas.height);
+      micAn.getByteFrequencyData(micBuf);
+      if (musicAn && musicBuf) musicAn.getByteFrequencyData(musicBuf);
+      const W = canvas.width, H = canvas.height;
+      c.clearRect(0, 0, W, H);
+      const w = W / micBuf.length;
+      let micSum = 0;
+      for (let i = 0; i < micBuf.length; i++) {
+        const h = (micBuf[i] / 255) * H * 0.9;
+        micSum += micBuf[i];
+        const grad = c.createLinearGradient(0, H - h, 0, H);
         grad.addColorStop(0, "#f5c451");
         grad.addColorStop(1, "#b8860b");
         c.fillStyle = grad;
-        c.fillRect(i * w, canvas.height - h, w - 1, h);
+        c.fillRect(i * w, H - h, w - 1, h);
       }
+      if (musicBuf) {
+        let musicSum = 0;
+        for (let i = 0; i < musicBuf.length; i++) {
+          const h = (musicBuf[i] / 255) * H * 0.5;
+          musicSum += musicBuf[i];
+          c.fillStyle = "rgba(96, 165, 250, 0.35)";
+          c.fillRect(i * w, H - h, w - 1, h);
+        }
+        setMusicLevel(musicSum / musicBuf.length / 255);
+      }
+      setMicLevel(micSum / micBuf.length / 255);
       rafRef.current = requestAnimationFrame(loop);
     };
     loop();
   };
 
+  const setupContext = async (micStream: MediaStream) => {
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+    const dest = ctx.createMediaStreamDestination();
+    destRef.current = dest;
+
+    // mic chain
+    const micSrc = ctx.createMediaStreamSource(micStream);
+    const micGain = ctx.createGain();
+    micGain.gain.value = micVolume;
+    const micAn = ctx.createAnalyser();
+    micAn.fftSize = 256;
+    micSrc.connect(micGain);
+    micGain.connect(micAn);
+    micGain.connect(dest);
+    micGainRef.current = micGain;
+    micAnalyserRef.current = micAn;
+
+    // music chain (if a track exists)
+    if (musicElRef.current && !musicSourceRef.current) {
+      const musicSrc = ctx.createMediaElementSource(musicElRef.current);
+      const musicGain = ctx.createGain();
+      musicGain.gain.value = 0; // we'll fade in
+      const musicAn = ctx.createAnalyser();
+      musicAn.fftSize = 256;
+      musicSrc.connect(musicGain);
+      musicGain.connect(musicAn);
+      musicGain.connect(dest);
+      musicGain.connect(ctx.destination); // monitor
+      musicGainRef.current = musicGain;
+      musicAnalyserRef.current = musicAn;
+      musicSourceRef.current = musicSrc;
+    }
+
+    if (duckingEnabled && musicGainRef.current) {
+      runDucking();
+    }
+    drawWave();
+  };
+
+  const runDucking = () => {
+    const loop = () => {
+      if (!audioCtxRef.current || !musicGainRef.current || !micAnalyserRef.current) return;
+      const buf = new Uint8Array(micAnalyserRef.current.frequencyBinCount);
+      micAnalyserRef.current.getByteFrequencyData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i];
+      const lvl = sum / buf.length / 255;
+      const speaking = lvl > 0.08;
+      const target = speaking ? Math.min(duckedLevel, musicVolume) : musicVolume;
+      musicGainRef.current.gain.setTargetAtTime(target, audioCtxRef.current.currentTime, 0.15);
+      duckingRafRef.current = requestAnimationFrame(loop);
+    };
+    loop();
+  };
+
+  const fadeMusic = (from: number, to: number, durationSec: number) => {
+    if (!musicGainRef.current || !audioCtxRef.current) return;
+    const now = audioCtxRef.current.currentTime;
+    musicGainRef.current.gain.cancelScheduledValues(now);
+    musicGainRef.current.gain.setValueAtTime(from, now);
+    musicGainRef.current.gain.linearRampToValueAtTime(to, now + Math.max(0.01, durationSec));
+  };
+
   const start = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
       streamRef.current = stream;
-      drawWave(stream);
+      await setupContext(stream);
+
+      // start music with fade-in if a track is selected
+      if (selectedTrack && musicElRef.current) {
+        try {
+          musicElRef.current.currentTime = 0;
+          await musicElRef.current.play();
+          setMusicPlaying(true);
+          fadeMusic(0, musicVolume, fadeInSec);
+        } catch { /* ignore */ }
+      }
+
       const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
-      const rec = new MediaRecorder(stream, { mimeType: mime });
+      const rec = new MediaRecorder(destRef.current!.stream, { mimeType: mime });
       chunksRef.current = [];
       rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
       rec.onstop = () => {
@@ -80,16 +233,39 @@ function Studio() {
       tickRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000);
     } catch (e: any) { toast.error(e?.message ?? "Mic denied"); }
   };
-  const pause = () => { recRef.current?.pause(); setState("paused"); if (tickRef.current) window.clearInterval(tickRef.current); };
-  const resume = () => { recRef.current?.resume(); setState("recording"); tickRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000); };
-  const stop = () => {
+
+  const pause = () => {
+    recRef.current?.pause();
+    setState("paused");
+    if (tickRef.current) window.clearInterval(tickRef.current);
+    if (musicElRef.current) musicElRef.current.pause();
+  };
+  const resume = () => {
+    recRef.current?.resume();
+    setState("recording");
+    tickRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    if (musicElRef.current && selectedTrack) musicElRef.current.play().catch(() => {});
+  };
+  const stop = async () => {
+    // fade out music first
+    if (musicGainRef.current && musicPlaying) {
+      fadeMusic(musicGainRef.current.gain.value, 0, fadeOutSec);
+      await new Promise((r) => setTimeout(r, fadeOutSec * 1000));
+      musicElRef.current?.pause();
+      setMusicPlaying(false);
+    }
     recRef.current?.stop();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (duckingRafRef.current) cancelAnimationFrame(duckingRafRef.current);
     if (tickRef.current) window.clearInterval(tickRef.current);
   };
   const reset = () => {
-    setBlob(null); setUrl(null); setState("idle"); setSeconds(0); setNotes("");
+    setBlob(null); setUrl(null); setState("idle"); setSeconds(0); setNotes(""); setTitle("");
+    musicSourceRef.current = null;
+    musicGainRef.current = null;
+    audioCtxRef.current?.close().catch(() => {});
+    audioCtxRef.current = null;
   };
 
   const upload = async () => {
@@ -100,9 +276,10 @@ function Studio() {
     const { error } = await supabase.storage.from("podcast-audio").upload(path, blob, { contentType: blob.type });
     if (error) { toast.error(error.message); setUploading(false); return; }
     const { data: pub } = supabase.storage.from("podcast-audio").getPublicUrl(path);
+    const slug = `studio-${Date.now()}`;
     const { data: row, error: insErr } = await supabase.from("podcasts").insert({
-      title: `Studio recording ${new Date().toLocaleString()}`,
-      slug: `studio-${Date.now()}`,
+      title: title || `Studio recording ${new Date().toLocaleString()}`,
+      slug,
       audio_url: pub.publicUrl,
       duration: seconds,
       status: "draft",
@@ -117,52 +294,185 @@ function Studio() {
   const aiNotes = async () => {
     setAiBusy(true);
     try {
-      const r = await aiTranscribe({ data: { description: notes || "Old-school East African podcast recorded in studio." } });
+      const r = await aiTranscribe({ data: { description: notes || title || "Old-school East African podcast recorded in studio." } });
       setNotes(r.notes);
     } catch (e: any) { toast.error(e?.message ?? "AI failed"); }
     finally { setAiBusy(false); }
   };
 
+  const uploadTrack = async (file: File) => {
+    if (!user) return;
+    const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    const { error } = await supabase.storage.from("background-music").upload(path, file, { contentType: file.type });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Track uploaded");
+    tracks.refetch();
+  };
+
+  const deleteTrack = async (t: Track) => {
+    if (!confirm(`Delete "${t.name}"?`)) return;
+    const { error } = await supabase.storage.from("background-music").remove([t.id]);
+    if (error) toast.error(error.message); else { toast.success("Deleted"); tracks.refetch(); if (selectedTrack?.id === t.id) setSelectedTrack(null); }
+  };
+
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
+  const peak = (v: number) => Math.round(v * 100);
 
   return (
     <div className="space-y-6 animate-fade-up">
-      <div><h1 className="font-display text-3xl flex items-center gap-2"><Music4 className="h-7 w-7" /> Recording studio</h1>
-        <p className="text-sm text-muted-foreground">Record directly in the browser. No copyrighted music — just sauti.</p></div>
+      <div>
+        <h1 className="font-display text-3xl flex items-center gap-2"><Radio className="h-7 w-7 text-[color:var(--gold)]" /> Recording studio</h1>
+        <p className="text-sm text-muted-foreground">Pro dashboard with mic, royalty-free background music mixer, automatic ducking and fades.</p>
+      </div>
 
-      <div className="glass rounded-3xl p-6 space-y-4 shadow-elegant">
-        <canvas ref={canvasRef} width={800} height={120} className="w-full h-28 rounded-xl bg-secondary/40" />
-        <div className="text-center font-display text-4xl tabular-nums">{mm}:{ss}</div>
-        <div className="flex justify-center gap-3 flex-wrap">
-          {state === "idle" && (
-            <button onClick={start} className="px-6 py-3 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine inline-flex items-center gap-2"><Mic className="h-5 w-5" /> Start recording</button>
-          )}
-          {state === "recording" && (
-            <>
-              <button onClick={pause} className="px-5 py-3 rounded-full bg-secondary inline-flex items-center gap-2"><Pause className="h-4 w-4" /> Pause</button>
-              <button onClick={stop} className="px-5 py-3 rounded-full bg-destructive text-destructive-foreground inline-flex items-center gap-2"><Square className="h-4 w-4" /> Stop</button>
-            </>
-          )}
-          {state === "paused" && (
-            <>
-              <button onClick={resume} className="px-5 py-3 rounded-full bg-gradient-gold text-primary-foreground inline-flex items-center gap-2"><Play className="h-4 w-4" /> Resume</button>
-              <button onClick={stop} className="px-5 py-3 rounded-full bg-destructive text-destructive-foreground inline-flex items-center gap-2"><Square className="h-4 w-4" /> Stop</button>
-            </>
-          )}
+      <div className="grid lg:grid-cols-[2fr_1fr] gap-6">
+        {/* Main recording panel */}
+        <div className="glass rounded-3xl p-6 space-y-4 shadow-elegant">
+          <canvas ref={canvasRef} width={800} height={160} className="w-full h-40 rounded-xl bg-secondary/40" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Meter label="Mic" icon={Mic} level={micLevel} color="bg-gradient-gold" />
+            <Meter label="Music" icon={Music2} level={musicLevel} color="bg-blue-500" />
+          </div>
+
+          <div className="text-center font-display text-5xl tabular-nums">{mm}:{ss}</div>
+          <div className="text-center text-xs uppercase tracking-widest text-muted-foreground -mt-3">
+            {state === "recording" && <span className="text-red-500 inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Recording</span>}
+            {state === "paused" && "Paused"}
+            {state === "done" && "Ready to publish"}
+            {state === "idle" && "Standing by"}
+          </div>
+
+          <div className="flex justify-center gap-3 flex-wrap">
+            {state === "idle" && (
+              <button onClick={start} className="px-8 py-4 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine inline-flex items-center gap-2 shadow-3d hover:scale-105 transition"><Mic className="h-5 w-5" /> Start recording</button>
+            )}
+            {state === "recording" && (
+              <>
+                <button onClick={pause} className="px-5 py-3 rounded-full bg-secondary inline-flex items-center gap-2"><Pause className="h-4 w-4" /> Pause</button>
+                <button onClick={stop} className="px-5 py-3 rounded-full bg-destructive text-destructive-foreground inline-flex items-center gap-2"><Square className="h-4 w-4" /> Stop & fade out</button>
+              </>
+            )}
+            {state === "paused" && (
+              <>
+                <button onClick={resume} className="px-5 py-3 rounded-full bg-gradient-gold text-primary-foreground inline-flex items-center gap-2"><Play className="h-4 w-4" /> Resume</button>
+                <button onClick={stop} className="px-5 py-3 rounded-full bg-destructive text-destructive-foreground inline-flex items-center gap-2"><Square className="h-4 w-4" /> Stop</button>
+              </>
+            )}
+          </div>
+
           {state === "done" && url && (
-            <div className="w-full space-y-4">
+            <div className="space-y-4 pt-4 border-t border-border/40">
               <audio src={url} controls className="w-full" />
-              <textarea rows={6} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Show notes / topics..." className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-sm" />
-              <div className="flex flex-wrap gap-2 justify-center">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Episode title"
+                className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <textarea rows={5} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Show notes / topics..." className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-sm" />
+              <div className="flex flex-wrap gap-2 justify-end">
                 <button onClick={aiNotes} disabled={aiBusy} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm">{aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} AI show notes</button>
-                <button onClick={upload} disabled={uploading} className="px-5 py-2.5 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine inline-flex items-center gap-2">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Save as draft</button>
+                <a href={url} download={`recording-${Date.now()}.webm`} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Download className="h-4 w-4" /> Download</a>
                 <button onClick={reset} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Trash2 className="h-4 w-4" /> Discard</button>
+                <button onClick={upload} disabled={uploading} className="px-5 py-2.5 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine inline-flex items-center gap-2">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save as draft</button>
               </div>
             </div>
           )}
+        </div>
+
+        {/* Mixer + Music library */}
+        <div className="space-y-4">
+          <div className="glass rounded-2xl p-5 space-y-4">
+            <h3 className="font-display text-lg flex items-center gap-2"><Headphones className="h-4 w-4 text-[color:var(--gold)]" /> Mixer</h3>
+            <Slider label={<><Mic className="h-3.5 w-3.5 inline mr-1" /> Mic volume — {peak(micVolume)}%</>} value={micVolume} onChange={setMicVolume} />
+            <Slider label={<><Music2 className="h-3.5 w-3.5 inline mr-1" /> Music volume — {peak(musicVolume)}%</>} value={musicVolume} onChange={setMusicVolume} />
+            <label className="flex items-center justify-between text-sm">
+              <span>Auto-duck music while speaking</span>
+              <input type="checkbox" checked={duckingEnabled} onChange={(e) => setDuckingEnabled(e.target.checked)} />
+            </label>
+            {duckingEnabled && (
+              <Slider label={`Ducked level — ${peak(duckedLevel)}%`} value={duckedLevel} onChange={setDuckedLevel} />
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Fade in (s)
+                <input type="number" min={0} max={20} value={fadeInSec} onChange={(e) => setFadeInSec(Number(e.target.value))} className="mt-1 w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm" />
+              </label>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Fade out (s)
+                <input type="number" min={0} max={20} value={fadeOutSec} onChange={(e) => setFadeOutSec(Number(e.target.value))} className="mt-1 w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm" />
+              </label>
+            </div>
+          </div>
+
+          <div className="glass rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg flex items-center gap-2"><Music4 className="h-4 w-4 text-[color:var(--gold)]" /> Background music</h3>
+              <label className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-gold text-primary-foreground cursor-pointer btn-shine">
+                <Plus className="h-3 w-3" /> Upload
+                <input type="file" accept="audio/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadTrack(e.target.files[0])} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">Royalty-free only. Files are private to your account.</p>
+
+            {selectedTrack && (
+              <audio
+                ref={musicElRef}
+                src={selectedTrack.url}
+                loop
+                crossOrigin="anonymous"
+                className="hidden"
+              />
+            )}
+
+            <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+              {tracks.isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
+              {tracks.data?.length === 0 && <p className="text-xs text-muted-foreground">No tracks yet. Upload royalty-free music to use as bed.</p>}
+              {tracks.data?.map((t) => {
+                const active = selectedTrack?.id === t.id;
+                return (
+                  <div key={t.id} className={`flex items-center justify-between gap-2 p-2 rounded-lg border text-sm ${active ? "border-[color:var(--gold)] bg-[color:var(--gold)]/10" : "border-border hover:bg-secondary"}`}>
+                    <button onClick={() => setSelectedTrack(active ? null : t)} className="flex-1 text-left truncate">
+                      {active ? "▶ " : ""}{t.name}
+                    </button>
+                    <button onClick={() => deleteTrack(t)} className="text-destructive p-1" aria-label="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                );
+              })}
+            </div>
+            {selectedTrack && state === "idle" && (
+              <p className="text-xs text-[color:var(--gold)]">"{selectedTrack.name}" will fade in when you press record.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+function Meter({ label, icon: Icon, level, color }: { label: string; icon: any; level: number; color: string }) {
+  return (
+    <div className="glass rounded-xl p-3">
+      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+        <span className="inline-flex items-center gap-1"><Icon className="h-3 w-3" /> {label}</span>
+        <span className="tabular-nums">{Math.round(level * 100)}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+        <div className={`${color} h-full transition-all duration-100`} style={{ width: `${Math.min(100, level * 140)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function Slider({ label, value, onChange }: { label: React.ReactNode; value: number; onChange: (v: number) => void }) {
+  return (
+    <label className="block text-xs">
+      <span className="block text-muted-foreground mb-1">{label}</span>
+      <input type="range" min={0} max={1} step={0.01} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+    </label>
+  );
+}
+// Volume2 import kept for tree-shake friendliness
+void Volume2;
