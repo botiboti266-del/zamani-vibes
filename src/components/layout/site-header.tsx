@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/podcasts", label: "Podcasts" },
+  { to: "/vibes", label: "Vibes" },
   { to: "/blog", label: "Blog" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
