@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VibesRouteImport } from './routes/vibes'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -24,6 +25,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PodcastsSlugRouteImport } from './routes/podcasts.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AdminVibesRouteImport } from './routes/admin.vibes'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSubscribersRouteImport } from './routes/admin.subscribers'
 import { Route as AdminStudioRouteImport } from './routes/admin.studio'
@@ -42,6 +44,11 @@ import { Route as AdminPodcastsIdRouteImport } from './routes/admin.podcasts.$id
 import { Route as AdminBlogNewRouteImport } from './routes/admin.blog.new'
 import { Route as AdminBlogIdRouteImport } from './routes/admin.blog.$id'
 
+const VibesRoute = VibesRouteImport.update({
+  id: '/vibes',
+  path: '/vibes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -116,6 +123,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => BlogRoute,
+} as any)
+const AdminVibesRoute = AdminVibesRouteImport.update({
+  id: '/vibes',
+  path: '/vibes',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -216,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/vibes': typeof VibesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/blog': typeof AdminBlogRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
@@ -227,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/admin/studio': typeof AdminStudioRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/vibes': typeof AdminVibesRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/podcasts/$slug': typeof PodcastsSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -249,6 +263,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/vibes': typeof VibesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
@@ -258,6 +273,7 @@ export interface FileRoutesByTo {
   '/admin/studio': typeof AdminStudioRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/vibes': typeof AdminVibesRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/podcasts/$slug': typeof PodcastsSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -282,6 +298,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/vibes': typeof VibesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/blog': typeof AdminBlogRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
@@ -293,6 +310,7 @@ export interface FileRoutesById {
   '/admin/studio': typeof AdminStudioRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/vibes': typeof AdminVibesRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/podcasts/$slug': typeof PodcastsSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -318,6 +336,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/vibes'
     | '/admin/analytics'
     | '/admin/blog'
     | '/admin/categories'
@@ -329,6 +348,7 @@ export interface FileRouteTypes {
     | '/admin/studio'
     | '/admin/subscribers'
     | '/admin/users'
+    | '/admin/vibes'
     | '/blog/$slug'
     | '/podcasts/$slug'
     | '/admin/'
@@ -351,6 +371,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/vibes'
     | '/admin/analytics'
     | '/admin/categories'
     | '/admin/comments'
@@ -360,6 +381,7 @@ export interface FileRouteTypes {
     | '/admin/studio'
     | '/admin/subscribers'
     | '/admin/users'
+    | '/admin/vibes'
     | '/blog/$slug'
     | '/podcasts/$slug'
     | '/admin'
@@ -383,6 +405,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/vibes'
     | '/admin/analytics'
     | '/admin/blog'
     | '/admin/categories'
@@ -394,6 +417,7 @@ export interface FileRouteTypes {
     | '/admin/studio'
     | '/admin/subscribers'
     | '/admin/users'
+    | '/admin/vibes'
     | '/blog/$slug'
     | '/podcasts/$slug'
     | '/admin/'
@@ -418,10 +442,18 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  VibesRoute: typeof VibesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vibes': {
+      id: '/vibes'
+      path: '/vibes'
+      fullPath: '/vibes'
+      preLoaderRoute: typeof VibesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -526,6 +558,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
+    }
+    '/admin/vibes': {
+      id: '/admin/vibes'
+      path: '/vibes'
+      fullPath: '/admin/vibes'
+      preLoaderRoute: typeof AdminVibesRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/users': {
       id: '/admin/users'
@@ -693,6 +732,7 @@ interface AdminRouteChildren {
   AdminStudioRoute: typeof AdminStudioRoute
   AdminSubscribersRoute: typeof AdminSubscribersRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AdminVibesRoute: typeof AdminVibesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -708,6 +748,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStudioRoute: AdminStudioRoute,
   AdminSubscribersRoute: AdminSubscribersRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AdminVibesRoute: AdminVibesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -748,7 +789,18 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  VibesRoute: VibesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
