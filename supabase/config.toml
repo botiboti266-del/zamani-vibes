@@ -1,1 +1,10 @@
 project_id = "pypdsuyrktiopzfqcibd"
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.notify-new-episode]
+verify_jwt = true
+
+[functions.generate-daily-vibe]
+verify_jwt = false
