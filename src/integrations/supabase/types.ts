@@ -181,6 +181,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_vibes: {
+        Row: {
+          body: string
+          created_at: string
+          date: string
+          id: string
+          image_url: string | null
+          mood: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          date: string
+          id?: string
+          image_url?: string | null
+          mood?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          date?: string
+          id?: string
+          image_url?: string | null
+          mood?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listening_history: {
         Row: {
           completed: boolean
