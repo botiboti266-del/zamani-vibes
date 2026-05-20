@@ -97,6 +97,12 @@ function Home() {
               ))}
               <span className="text-xs text-muted-foreground ml-3 pb-0.5">Live waveform</span>
             </div>
+            {latestTrack && (
+              <div className="pt-4 max-w-3xl">
+                <div className="mb-3 text-xs uppercase tracking-widest text-[color:var(--gold)]">Latest episode</div>
+                <EpisodePlayer track={latestTrack} duration={d.latest[0].duration} showDetailLink />
+              </div>
+            )}
           </div>
 
           <div className="relative">
@@ -121,13 +127,6 @@ function Home() {
       </section>
 
       {/* Categories */}
-      {latestTrack && (
-        <section className="mx-auto max-w-7xl px-4 lg:px-6 -mt-12 relative z-10">
-          <div className="mb-3 text-xs uppercase tracking-widest text-[color:var(--gold)]">Latest episode</div>
-          <EpisodePlayer track={latestTrack} duration={d.latest[0].duration} showDetailLink />
-        </section>
-      )}
-
       {/* Categories */}
       <Section title="Browse by mood" subtitle="Pick your wavelength">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
