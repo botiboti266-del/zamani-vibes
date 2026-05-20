@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/blog")({
-  component: BlogIndex,
+  component: BlogRouteShell,
   head: () => ({
     meta: [
       { title: "Blog — Sauti ya Zamani" },
@@ -14,10 +14,13 @@ export const Route = createFileRoute("/blog")({
   }),
 });
 
-function BlogIndex() {
+function BlogRouteShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname !== "/blog") return <Outlet />;
+  return <BlogIndex />;
+}
 
+function BlogIndex() {
   const { data } = useQuery({
     queryKey: ["posts"],
     queryFn: async () => (await supabase.from("blog_posts").select("*").eq("status", "published").order("published_at", { ascending: false })).data ?? [],
