@@ -97,16 +97,15 @@ function Home() {
               ))}
               <span className="text-xs text-muted-foreground ml-3 pb-0.5">Live waveform</span>
             </div>
-            {latestTrack && (
-              <div className="pt-4 max-w-3xl">
-                <div className="mb-3 text-xs uppercase tracking-widest text-[color:var(--gold)]">Latest episode</div>
-                <EpisodePlayer track={latestTrack} duration={d.latest[0].duration} showDetailLink />
-              </div>
-            )}
           </div>
 
           <div className="relative">
-            {d.featured[0] && (
+            {latestTrack ? (
+              <div className="animate-float-slow space-y-3">
+                <div className="text-xs uppercase tracking-widest text-[color:var(--gold)]">Latest episode</div>
+                <EpisodePlayer track={latestTrack} duration={d.latest[0].duration} showDetailLink />
+              </div>
+            ) : d.featured[0] && (
               <Link to="/podcasts/$slug" params={{ slug: d.featured[0].slug }} className="block card-3d rounded-3xl glass overflow-hidden shadow-3d animate-float-slow">
                 <div className="aspect-square relative">
                   {d.featured[0].cover_image ? (
