@@ -13,7 +13,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/podcasts")({
   validateSearch: searchSchema,
-  component: PodcastsPage,
+  component: PodcastsRouteShell,
   head: () => ({
     meta: [
       { title: "All Podcasts — Sauti ya Zamani" },
@@ -24,13 +24,15 @@ export const Route = createFileRoute("/podcasts")({
   }),
 });
 
-function PodcastsPage() {
+function PodcastsRouteShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/podcasts") return <Outlet />;
+  return <PodcastsIndex />;
+}
+
+function PodcastsIndex() {
   const { q, category } = Route.useSearch();
   const [search, setSearch] = useState(q ?? "");
-
-  if (pathname !== "/podcasts") return <Outlet />;
-
   const cats = useQuery({
     queryKey: ["cats"],
     queryFn: async () => (await supabase.from("podcast_categories").select("*").order("name")).data ?? [],
