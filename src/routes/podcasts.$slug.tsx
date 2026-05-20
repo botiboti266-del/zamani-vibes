@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type Track } from "@/components/player/player-context";
+import { EpisodePlayer } from "@/components/player/episode-player";
 import { useAuth } from "@/hooks/use-auth";
-import { Play, Heart, Share2, Download, MessageCircle, Headphones, Clock, FileText } from "lucide-react";
+import { AlertCircle, Heart, MessageCircle, Headphones, Clock, FileText, Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { renderMarkdown } from "@/lib/markdown";
@@ -32,6 +33,7 @@ function PodcastPage() {
         .from("podcasts")
         .select("*, category:podcast_categories(name,slug)")
         .eq("slug", slug)
+        .eq("status", "published")
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -109,12 +111,7 @@ function PodcastPage() {
     );
   }
   const p = q.data;
-
-  const onPlay = () => {
-    if (!p.audio_url) { toast.error("This episode has no audio yet."); return; }
-    const t: Track = { id: p.id, title: p.title, audioUrl: p.audio_url, coverImage: p.cover_image, slug: p.slug };
-    player.play(t);
-  };
+  const track: Track | null = p.audio_url ? { id: p.id, title: p.title, audioUrl: p.audio_url, coverImage: p.cover_image, slug: p.slug } : null;
 
   const toggleLike = async () => {
     if (!user) { toast.info("Sign in to like this episode"); return; }
@@ -144,37 +141,26 @@ function PodcastPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 lg:px-6 py-12">
-      <div className="grid lg:grid-cols-[1fr_2fr] gap-10">
-        <div className="space-y-4">
-          <div className="aspect-square rounded-3xl overflow-hidden glass shadow-3d card-3d">
+    <div className="mx-auto max-w-7xl px-4 lg:px-6 py-10">
+      <div className="grid lg:grid-cols-[0.9fr_1.35fr] gap-8 items-start">
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <div className="aspect-square rounded-2xl overflow-hidden glass shadow-3d">
             {p.cover_image ? (
               <img src={p.cover_image} alt={p.title} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gradient-card flex items-center justify-center text-6xl">🎙️</div>
+              <div className="w-full h-full bg-gradient-card flex items-center justify-center"><Radio className="h-20 w-20 text-[color:var(--gold)]" /></div>
             )}
           </div>
-          <button onClick={onPlay} className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-gradient-gold text-primary-foreground font-semibold shadow-3d btn-shine hover:scale-[1.02] transition">
-            <Play className="h-5 w-5" /> Play episode
-          </button>
-          {p.audio_url && (
-            <audio src={p.audio_url} controls className="w-full" preload="metadata" />
-          )}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button onClick={toggleLike} className={`glass rounded-xl py-3 flex flex-col items-center gap-1 hover:bg-secondary transition ${likes.data?.liked ? "text-[color:var(--gold)]" : ""}`}>
               <Heart className={`h-4 w-4 ${likes.data?.liked ? "fill-current" : ""}`} />
               <span className="text-xs">{likes.data?.count ?? 0}</span>
             </button>
             <button onClick={share} className="glass rounded-xl py-3 flex flex-col items-center gap-1 hover:bg-secondary transition">
-              <Share2 className="h-4 w-4" /><span className="text-xs">Share</span>
+              <MessageCircle className="h-4 w-4" /><span className="text-xs">Share</span>
             </button>
-            {p.audio_url && (
-              <a href={p.audio_url} download className="glass rounded-xl py-3 flex flex-col items-center gap-1 hover:bg-secondary transition">
-                <Download className="h-4 w-4" /><span className="text-xs">Download</span>
-              </a>
-            )}
           </div>
-        </div>
+        </aside>
 
         <div className="space-y-6 animate-fade-up">
           {p.category && (
@@ -190,6 +176,15 @@ function PodcastPage() {
           </div>
           {p.summary && <p className="text-lg text-foreground/90 italic">{p.summary}</p>}
           {p.description && <p className="text-base text-muted-foreground whitespace-pre-wrap">{p.description}</p>}
+
+          {track ? (
+            <EpisodePlayer track={track} duration={p.duration} onShare={share} />
+          ) : (
+            <div className="glass rounded-2xl p-5 flex items-start gap-3 text-muted-foreground">
+              <AlertCircle className="h-5 w-5 text-[color:var(--gold)] mt-0.5" />
+              <p>This episode is published, but audio has not been attached yet.</p>
+            </div>
+          )}
 
           {(p.show_notes || p.transcript) && (
             <div className="glass rounded-2xl overflow-hidden">
