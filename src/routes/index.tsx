@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PodcastCard, type PodcastCardData } from "@/components/podcast/podcast-card";
+import { EpisodePlayer } from "@/components/player/episode-player";
+import type { Track } from "@/components/player/player-context";
 import { ArrowRight, Sparkles, TrendingUp, Headphones, Radio } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 
@@ -48,6 +50,9 @@ function Home() {
   const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], hero: null as any, banner: null as any };
   const hero = d.hero;
   const banner = d.banner;
+  const latestTrack: Track | null = d.latest[0]?.audio_url
+    ? { id: d.latest[0].id, title: d.latest[0].title, audioUrl: d.latest[0].audio_url, coverImage: d.latest[0].cover_image, slug: d.latest[0].slug }
+    : null;
 
   return (
     <div>
@@ -114,6 +119,14 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* Categories */}
+      {latestTrack && (
+        <section className="mx-auto max-w-7xl px-4 lg:px-6 -mt-12 relative z-10">
+          <div className="mb-3 text-xs uppercase tracking-widest text-[color:var(--gold)]">Latest episode</div>
+          <EpisodePlayer track={latestTrack} duration={d.latest[0].duration} showDetailLink />
+        </section>
+      )}
 
       {/* Categories */}
       <Section title="Browse by mood" subtitle="Pick your wavelength">
