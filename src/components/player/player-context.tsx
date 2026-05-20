@@ -13,6 +13,8 @@ interface PlayerState {
   current: Track | null;
   queue: Track[];
   playing: boolean;
+  loading: boolean;
+  error: string | null;
   position: number;
   duration: number;
   speed: number;
@@ -34,6 +36,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [current, setCurrent] = useState<Track | null>(null);
   const [queue, setQueue] = useState<Track[]>([]);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeedState] = useState(1);
@@ -47,6 +51,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     audioRef.current = a;
     const onTime = () => setPosition(a.currentTime);
     const onDur = () => setDuration(a.duration || 0);
+    const onWaiting = () => setLoading(true);
+    const onCanPlay = () => setLoading(false);
+    const onPlay = () => { setPlaying(true); setLoading(false); };
+    const onPause = () => setPlaying(false);
+    const onError = () => { setLoading(false); setPlaying(false); setError("Audio could not be loaded."); };
     const onEnd = () => {
       setPlaying(false);
       // auto-next
@@ -61,11 +70,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onDur);
+    a.addEventListener("waiting", onWaiting);
+    a.addEventListener("canplay", onCanPlay);
+    a.addEventListener("playing", onPlay);
+    a.addEventListener("pause", onPause);
+    a.addEventListener("error", onError);
     a.addEventListener("ended", onEnd);
     return () => {
       a.pause();
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("loadedmetadata", onDur);
+      a.removeEventListener("waiting", onWaiting);
+      a.removeEventListener("canplay", onCanPlay);
+      a.removeEventListener("playing", onPlay);
+      a.removeEventListener("pause", onPause);
+      a.removeEventListener("error", onError);
       a.removeEventListener("ended", onEnd);
     };
   }, []);
@@ -74,6 +93,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !current) return;
+    setError(null);
+    setLoading(true);
     a.src = current.audioUrl;
     a.playbackRate = speed;
     a.volume = volume;
@@ -135,9 +156,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const enqueue = useCallback((t: Track) => setQueue((q) => [...q, t]), []);
 
   const value = useMemo(() => ({
-    current, queue, playing, position, duration, speed, volume,
+    current, queue, playing, loading, error, position, duration, speed, volume,
     play, toggle, next, prev, seek, setSpeed, setVolume, enqueue,
-  }), [current, queue, playing, position, duration, speed, volume,
+  }), [current, queue, playing, loading, error, position, duration, speed, volume,
       play, toggle, next, prev, seek, setSpeed, setVolume, enqueue]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
