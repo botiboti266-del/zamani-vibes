@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { usePlayer, type Track } from "@/components/player/player-context";
+import type { Track } from "@/components/player/player-context";
 import { EpisodePlayer } from "@/components/player/episode-player";
 import { useAuth } from "@/hooks/use-auth";
 import { AlertCircle, Heart, MessageCircle, Headphones, Clock, FileText, Radio } from "lucide-react";
@@ -21,7 +21,6 @@ export const Route = createFileRoute("/podcasts/$slug")({
 
 function PodcastPage() {
   const { slug } = Route.useParams();
-  const player = usePlayer();
   const { user } = useAuth();
   const [comment, setComment] = useState("");
   const [tab, setTab] = useState<"notes" | "transcript">("notes");
