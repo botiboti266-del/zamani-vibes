@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,6 +15,9 @@ export const Route = createFileRoute("/blog")({
 });
 
 function BlogIndex() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/blog") return <Outlet />;
+
   const { data } = useQuery({
     queryKey: ["posts"],
     queryFn: async () => (await supabase.from("blog_posts").select("*").eq("status", "published").order("published_at", { ascending: false })).data ?? [],
