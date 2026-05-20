@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PodcastCard, type PodcastCardData } from "@/components/podcast/podcast-card";
+import { EpisodePlayer } from "@/components/player/episode-player";
+import type { Track } from "@/components/player/player-context";
 import { ArrowRight, Sparkles, TrendingUp, Headphones, Radio } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 
@@ -48,6 +50,9 @@ function Home() {
   const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], hero: null as any, banner: null as any };
   const hero = d.hero;
   const banner = d.banner;
+  const latestTrack: Track | null = d.latest[0]?.audio_url
+    ? { id: d.latest[0].id, title: d.latest[0].title, audioUrl: d.latest[0].audio_url, coverImage: d.latest[0].cover_image, slug: d.latest[0].slug }
+    : null;
 
   return (
     <div>
@@ -95,7 +100,12 @@ function Home() {
           </div>
 
           <div className="relative">
-            {d.featured[0] && (
+            {latestTrack ? (
+              <div className="animate-float-slow space-y-3">
+                <div className="text-xs uppercase tracking-widest text-[color:var(--gold)]">Latest episode</div>
+                <EpisodePlayer track={latestTrack} duration={d.latest[0].duration} showDetailLink />
+              </div>
+            ) : d.featured[0] && (
               <Link to="/podcasts/$slug" params={{ slug: d.featured[0].slug }} className="block card-3d rounded-3xl glass overflow-hidden shadow-3d animate-float-slow">
                 <div className="aspect-square relative">
                   {d.featured[0].cover_image ? (
@@ -115,6 +125,7 @@ function Home() {
         </div>
       </section>
 
+      {/* Categories */}
       {/* Categories */}
       <Section title="Browse by mood" subtitle="Pick your wavelength">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">

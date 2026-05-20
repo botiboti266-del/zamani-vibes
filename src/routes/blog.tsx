@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/blog")({
-  component: BlogIndex,
+  component: BlogRouteShell,
   head: () => ({
     meta: [
       { title: "Blog — Sauti ya Zamani" },
@@ -13,6 +13,12 @@ export const Route = createFileRoute("/blog")({
     ],
   }),
 });
+
+function BlogRouteShell() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/blog") return <Outlet />;
+  return <BlogIndex />;
+}
 
 function BlogIndex() {
   const { data } = useQuery({

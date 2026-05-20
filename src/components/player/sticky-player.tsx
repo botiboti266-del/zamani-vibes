@@ -1,5 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { usePlayer } from "./player-context";
-import { Play, Pause, SkipForward, SkipBack, Volume2 } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Volume2, ExternalLink, Loader2 } from "lucide-react";
 
 function fmt(s: number) {
   if (!isFinite(s)) return "0:00";
@@ -29,6 +30,7 @@ export function StickyPlayer() {
 
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-foreground">{p.current.title}</div>
+          {p.error && <div className="text-xs text-destructive">{p.error}</div>}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="tabular-nums">{fmt(p.position)}</span>
             <input
@@ -52,7 +54,7 @@ export function StickyPlayer() {
           className="h-11 w-11 rounded-full bg-gradient-gold text-primary-foreground flex items-center justify-center shadow-3d btn-shine hover:scale-105 transition"
           aria-label={p.playing ? "Pause" : "Play"}
         >
-          {p.playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+          {p.loading ? <Loader2 className="h-5 w-5 animate-spin" /> : p.playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
         </button>
 
         <button onClick={p.next} className="p-2 rounded-full hover:bg-secondary transition" aria-label="Next">
@@ -78,6 +80,12 @@ export function StickyPlayer() {
             aria-label="Volume"
           />
         </div>
+
+        {p.current.slug && (
+          <Link to="/podcasts/$slug" params={{ slug: p.current.slug }} className="p-2 rounded-full hover:bg-secondary transition" aria-label="Open episode details">
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </div>
   );
