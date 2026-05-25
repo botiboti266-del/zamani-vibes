@@ -7,7 +7,7 @@ import { EpisodePlayer } from "@/components/player/episode-player";
 import { useAuth } from "@/hooks/use-auth";
 import {
   AlertCircle, Heart, MessageCircle, Headphones, Clock, FileText, Radio, Reply,
-  Share2, Twitter, Facebook, Link2, ListPlus, Play, ListMusic,
+  Share2, Link2, ListPlus, Play, ListMusic,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -232,8 +232,8 @@ function PodcastPage() {
           <div className="glass rounded-xl p-3">
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Share to</div>
             <div className="flex gap-2">
-              <a href={tweetUrl} target="_blank" rel="noopener noreferrer" className="flex-1 h-9 rounded-lg bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition inline-flex items-center justify-center" aria-label="Share on Twitter"><Twitter className="h-4 w-4" /></a>
-              <a href={fbUrl} target="_blank" rel="noopener noreferrer" className="flex-1 h-9 rounded-lg bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition inline-flex items-center justify-center" aria-label="Share on Facebook"><Facebook className="h-4 w-4" /></a>
+              <a href={tweetUrl} target="_blank" rel="noopener noreferrer" className="flex-1 h-9 rounded-lg bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition inline-flex items-center justify-center text-xs font-semibold" aria-label="Share on Twitter">𝕏</a>
+              <a href={fbUrl} target="_blank" rel="noopener noreferrer" className="flex-1 h-9 rounded-lg bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition inline-flex items-center justify-center text-xs font-bold" aria-label="Share on Facebook">f</a>
               <a href={waUrl} target="_blank" rel="noopener noreferrer" className="flex-1 h-9 rounded-lg bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition inline-flex items-center justify-center" aria-label="Share on WhatsApp"><MessageCircle className="h-4 w-4" /></a>
               <button onClick={copyLink} className="flex-1 h-9 rounded-lg bg-secondary hover:bg-gradient-gold hover:text-primary-foreground transition inline-flex items-center justify-center" aria-label="Copy link"><Link2 className="h-4 w-4" /></button>
             </div>

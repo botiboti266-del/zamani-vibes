@@ -72,9 +72,9 @@ function HistoryPage() {
   const queueAll = () => {
     const items = filtered.filter((h: any) => h.podcast.audio_url).slice(0, 30);
     if (items.length === 0) return;
-    const [first, ...rest] = items;
+    const [first, ...rest] = items as any[];
     player.play(
-      { id: first.podcast.id, title: first.podcast.title, audioUrl: first.podcast.audio_url, coverImage: first.podcast.cover_image, slug: first.podcast.slug },
+      { id: first.podcast.id, title: first.podcast.title, audioUrl: first.podcast.audio_url as string, coverImage: first.podcast.cover_image, slug: first.podcast.slug },
       rest.map((h: any) => ({ id: h.podcast.id, title: h.podcast.title, audioUrl: h.podcast.audio_url, coverImage: h.podcast.cover_image, slug: h.podcast.slug })),
     );
     toast.success(`Queued ${items.length} episodes`);
