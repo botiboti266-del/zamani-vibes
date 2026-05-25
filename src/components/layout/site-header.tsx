@@ -88,6 +88,9 @@ export function SiteHeader() {
                   Admin
                 </Link>
               )}
+              <Link to="/history" className="text-xs px-3 py-2 rounded-full hover:bg-secondary transition" title="My listening">
+                History
+              </Link>
               <Link to="/dashboard" className="p-2 rounded-full hover:bg-secondary transition" aria-label="Account">
                 <UserIcon className="h-4 w-4" />
               </Link>

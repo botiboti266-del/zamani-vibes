@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Mic, FileText, MessageSquare, Mail, Users,
-  Tag, Music4, BarChart3, Inbox, Home, Globe, Sparkles,
+  Tag, Music4, BarChart3, Inbox, Home, Globe, Sparkles, Headphones,
 } from "lucide-react";
 
 const ITEMS = [
@@ -15,6 +15,7 @@ const ITEMS = [
   { to: "/admin/messages", label: "Inbox", icon: Inbox },
   { to: "/admin/subscribers", label: "Newsletter", icon: Mail },
   { to: "/admin/categories", label: "Categories", icon: Tag },
+  { to: "/admin/plays", label: "Plays", icon: Headphones },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/admin/seo", label: "SEO", icon: Globe },
   { to: "/admin/users", label: "Users", icon: Users },
