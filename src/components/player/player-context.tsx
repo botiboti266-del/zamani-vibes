@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Track {
   id: string;
@@ -27,12 +28,30 @@ interface PlayerState {
   setSpeed: (s: number) => void;
   setVolume: (v: number) => void;
   enqueue: (t: Track) => void;
+  clearQueue: () => void;
 }
 
 const Ctx = createContext<PlayerState | null>(null);
 
+const LS_CURRENT = "syz-current-track";
+const LS_QUEUE = "syz-queue";
+const LS_SPEED = "syz-speed";
+const LS_VOLUME = "syz-volume";
+
+function readLS<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : null; } catch { return null; }
+}
+function writeLS(key: string, v: unknown) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
+}
+
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  const lastSyncRef = useRef<number>(0);
+  const autoPlayRef = useRef<boolean>(false); // only autoplay after user gesture
   const [current, setCurrent] = useState<Track | null>(null);
   const [queue, setQueue] = useState<Track[]>([]);
   const [playing, setPlaying] = useState(false);
@@ -43,13 +62,47 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [speed, setSpeedState] = useState(1);
   const [volume, setVolumeState] = useState(1);
 
+  // restore preferences + last track (paused) on mount
+  useEffect(() => {
+    const s = readLS<number>(LS_SPEED); if (s) setSpeedState(s);
+    const v = readLS<number>(LS_VOLUME); if (v != null) setVolumeState(v);
+    const c = readLS<Track>(LS_CURRENT); if (c) setCurrent(c);
+    const q = readLS<Track[]>(LS_QUEUE); if (q) setQueue(q);
+  }, []);
+
+  // track user id for history sync
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => { userIdRef.current = data.user?.id ?? null; });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      userIdRef.current = s?.user?.id ?? null;
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   // create audio element on client
   useEffect(() => {
     if (typeof window === "undefined") return;
     const a = new Audio();
     a.preload = "metadata";
     audioRef.current = a;
-    const onTime = () => setPosition(a.currentTime);
+    const onTime = () => {
+      setPosition(a.currentTime);
+      // persist position locally
+      if (current) {
+        try { localStorage.setItem(`syz-pos-${current.id}`, String(a.currentTime)); } catch {}
+      }
+      // sync to supabase every 15s
+      const now = Date.now();
+      if (userIdRef.current && current && now - lastSyncRef.current > 15000) {
+        lastSyncRef.current = now;
+        const pos = Math.floor(a.currentTime);
+        const completed = a.duration ? a.currentTime / a.duration > 0.95 : false;
+        supabase.from("listening_history").upsert(
+          { user_id: userIdRef.current, podcast_id: current.id, position_seconds: pos, completed, last_played_at: new Date().toISOString() },
+          { onConflict: "user_id,podcast_id" } as any,
+        ).then(() => {});
+      }
+    };
     const onDur = () => setDuration(a.duration || 0);
     const onWaiting = () => setLoading(true);
     const onCanPlay = () => setLoading(false);
@@ -58,7 +111,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const onError = () => { setLoading(false); setPlaying(false); setError("Audio could not be loaded."); };
     const onEnd = () => {
       setPlaying(false);
-      // auto-next
+      autoPlayRef.current = true;
       setQueue((q) => {
         if (q.length > 0) {
           const [n, ...rest] = q;
@@ -87,44 +140,62 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       a.removeEventListener("error", onError);
       a.removeEventListener("ended", onEnd);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id]);
 
-  // load current track
+  // load current track when it changes
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !current) return;
     setError(null);
     setLoading(true);
-    a.src = current.audioUrl;
+    if (a.src !== current.audioUrl) {
+      a.src = current.audioUrl;
+      a.load();
+    }
     a.playbackRate = speed;
     a.volume = volume;
-    a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-    // continue-listening from localStorage
+    // resume position
     try {
       const saved = localStorage.getItem(`syz-pos-${current.id}`);
-      if (saved) a.currentTime = Number(saved);
+      if (saved) {
+        const onMeta = () => { a.currentTime = Math.min(Number(saved), (a.duration || 1) - 1); a.removeEventListener("loadedmetadata", onMeta); };
+        a.addEventListener("loadedmetadata", onMeta);
+      }
     } catch {}
-  }, [current]); // eslint-disable-line
+    writeLS(LS_CURRENT, current);
+    if (autoPlayRef.current) {
+      a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current]);
 
-  // persist position
-  useEffect(() => {
-    if (!current) return;
-    try { localStorage.setItem(`syz-pos-${current.id}`, String(position)); } catch {}
-  }, [position, current]);
+  useEffect(() => { writeLS(LS_QUEUE, queue); }, [queue]);
+  useEffect(() => { writeLS(LS_SPEED, speed); }, [speed]);
+  useEffect(() => { writeLS(LS_VOLUME, volume); }, [volume]);
 
   const play = useCallback((track: Track, q: Track[] = []) => {
+    autoPlayRef.current = true;
     setQueue(q);
+    // If same track, just play
+    const a = audioRef.current;
+    if (current && current.id === track.id && a) {
+      a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      return;
+    }
     setCurrent(track);
-  }, []);
+  }, [current]);
 
   const toggle = useCallback(() => {
     const a = audioRef.current;
     if (!a || !current) return;
-    if (a.paused) { a.play(); setPlaying(true); }
+    autoPlayRef.current = true;
+    if (a.paused) { a.play().then(() => setPlaying(true)).catch(() => setPlaying(false)); }
     else { a.pause(); setPlaying(false); }
   }, [current]);
 
   const next = useCallback(() => {
+    autoPlayRef.current = true;
     setQueue((q) => {
       if (q.length === 0) return q;
       const [n, ...rest] = q;
@@ -153,13 +224,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
 
-  const enqueue = useCallback((t: Track) => setQueue((q) => [...q, t]), []);
+  const enqueue = useCallback((t: Track) => setQueue((q) => (q.find((x) => x.id === t.id) ? q : [...q, t])), []);
+  const clearQueue = useCallback(() => setQueue([]), []);
 
   const value = useMemo(() => ({
     current, queue, playing, loading, error, position, duration, speed, volume,
-    play, toggle, next, prev, seek, setSpeed, setVolume, enqueue,
+    play, toggle, next, prev, seek, setSpeed, setVolume, enqueue, clearQueue,
   }), [current, queue, playing, loading, error, position, duration, speed, volume,
-      play, toggle, next, prev, seek, setSpeed, setVolume, enqueue]);
+      play, toggle, next, prev, seek, setSpeed, setVolume, enqueue, clearQueue]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
