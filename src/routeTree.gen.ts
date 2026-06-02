@@ -38,6 +38,7 @@ import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminBlogRouteImport } from './routes/admin.blog'
+import { Route as AdminAutoCommentsRouteImport } from './routes/admin.auto-comments'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminPodcastsIndexRouteImport } from './routes/admin.podcasts.index'
 import { Route as AdminBlogIndexRouteImport } from './routes/admin.blog.index'
@@ -191,6 +192,11 @@ const AdminBlogRoute = AdminBlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAutoCommentsRoute = AdminAutoCommentsRouteImport.update({
+  id: '/auto-comments',
+  path: '/auto-comments',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/vibes': typeof VibesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/auto-comments': typeof AdminAutoCommentsRoute
   '/admin/blog': typeof AdminBlogRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
@@ -280,6 +287,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/vibes': typeof VibesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/auto-comments': typeof AdminAutoCommentsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -317,6 +325,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/vibes': typeof VibesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/auto-comments': typeof AdminAutoCommentsRoute
   '/admin/blog': typeof AdminBlogRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vibes'
     | '/admin/analytics'
+    | '/admin/auto-comments'
     | '/admin/blog'
     | '/admin/categories'
     | '/admin/comments'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vibes'
     | '/admin/analytics'
+    | '/admin/auto-comments'
     | '/admin/categories'
     | '/admin/comments'
     | '/admin/homepage'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vibes'
     | '/admin/analytics'
+    | '/admin/auto-comments'
     | '/admin/blog'
     | '/admin/categories'
     | '/admin/comments'
@@ -675,6 +687,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBlogRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/auto-comments': {
+      id: '/admin/auto-comments'
+      path: '/auto-comments'
+      fullPath: '/admin/auto-comments'
+      preLoaderRoute: typeof AdminAutoCommentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -761,6 +780,7 @@ const AdminPodcastsRouteWithChildren = AdminPodcastsRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminAutoCommentsRoute: typeof AdminAutoCommentsRoute
   AdminBlogRoute: typeof AdminBlogRouteWithChildren
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
@@ -778,6 +798,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminAutoCommentsRoute: AdminAutoCommentsRoute,
   AdminBlogRoute: AdminBlogRouteWithChildren,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCommentsRoute: AdminCommentsRoute,
@@ -836,13 +857,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

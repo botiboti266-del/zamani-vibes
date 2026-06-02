@@ -27,10 +27,13 @@ interface CommentRow {
   id: string;
   content: string;
   created_at: string;
-  user_id: string;
+  user_id: string | null;
+  bot_id: string | null;
   parent_id: string | null;
   profile?: { display_name: string | null; avatar_url: string | null } | null;
+  bot?: { display_name: string; country: string } | null;
 }
+
 
 function PodcastPage() {
   const { slug } = Route.useParams();
@@ -77,22 +80,27 @@ function PodcastPage() {
     queryFn: async () => {
       const { data: rows } = await supabase
         .from("podcast_comments")
-        .select("id,content,created_at,user_id,parent_id")
+        .select("id,content,created_at,user_id,bot_id,parent_id")
         .eq("podcast_id", q.data!.id)
         .order("created_at", { ascending: true });
-      const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+      const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id).filter((v): v is string => !!v)));
+      const botIds = Array.from(new Set((rows ?? []).map((r) => r.bot_id).filter((v): v is string => !!v)));
       let profiles: any[] = [];
-      if (ids.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id,display_name,avatar_url")
-          .in("user_id", ids);
+      let bots: any[] = [];
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id,display_name,avatar_url").in("user_id", userIds);
         profiles = profs ?? [];
+      }
+      if (botIds.length > 0) {
+        const { data: bs } = await supabase.from("comment_bots").select("id,display_name,country").in("id", botIds);
+        bots = bs ?? [];
       }
       return (rows ?? []).map((r) => ({
         ...r,
-        profile: profiles.find((p) => p.user_id === r.user_id) ?? null,
+        profile: r.user_id ? profiles.find((p) => p.user_id === r.user_id) ?? null : null,
+        bot: r.bot_id ? bots.find((b) => b.id === r.bot_id) ?? null : null,
       })) as CommentRow[];
+
     },
   });
 
