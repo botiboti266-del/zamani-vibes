@@ -448,19 +448,26 @@ function CommentItem({
 
 function CommentHeader({ c, small }: { c: CommentRow; small?: boolean }) {
   const size = small ? "h-7 w-7 text-[10px]" : "h-8 w-8 text-xs";
+  const name = c.bot?.display_name ?? c.profile?.display_name ?? "Listener";
+  const avatar = c.profile?.avatar_url;
+  const country = c.bot?.country;
   return (
     <div className="flex items-center gap-2">
-      {c.profile?.avatar_url ? (
-        <img src={c.profile.avatar_url} alt="" className={`${size} rounded-full object-cover`} />
+      {avatar ? (
+        <img src={avatar} alt="" className={`${size} rounded-full object-cover`} />
       ) : (
         <div className={`${size} rounded-full bg-gradient-gold flex items-center justify-center font-semibold text-primary-foreground`}>
-          {(c.profile?.display_name ?? "?")[0]?.toUpperCase() ?? "?"}
+          {name[0]?.toUpperCase() ?? "?"}
         </div>
       )}
       <div>
-        <div className="text-sm font-semibold">{c.profile?.display_name ?? "Listener"}</div>
+        <div className="text-sm font-semibold flex items-center gap-1.5">
+          {name}
+          {country && <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-[color:var(--gold)]">{country}</span>}
+        </div>
         <div className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
       </div>
     </div>
   );
 }
+
