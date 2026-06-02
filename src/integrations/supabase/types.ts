@@ -151,6 +151,33 @@ export type Database = {
           },
         ]
       }
+      comment_bots: {
+        Row: {
+          active: boolean
+          avatar_url: string | null
+          country: string
+          created_at: string
+          display_name: string
+          id: string
+        }
+        Insert: {
+          active?: boolean
+          avatar_url?: string | null
+          country: string
+          created_at?: string
+          display_name: string
+          id?: string
+        }
+        Update: {
+          active?: boolean
+          avatar_url?: string | null
+          country?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -300,35 +327,84 @@ export type Database = {
         }
         Relationships: []
       }
+      podcast_comment_schedules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          interval_minutes: number
+          last_run_at: string | null
+          next_run_at: string
+          podcast_id: string
+          style_prompt: string | null
+          total_posted: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          interval_minutes?: number
+          last_run_at?: string | null
+          next_run_at?: string
+          podcast_id: string
+          style_prompt?: string | null
+          total_posted?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          interval_minutes?: number
+          last_run_at?: string | null
+          next_run_at?: string
+          podcast_id?: string
+          style_prompt?: string | null
+          total_posted?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       podcast_comments: {
         Row: {
+          bot_id: string | null
           content: string
           created_at: string
           id: string
           parent_id: string | null
           podcast_id: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          bot_id?: string | null
           content: string
           created_at?: string
           id?: string
           parent_id?: string | null
           podcast_id: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          bot_id?: string | null
           content?: string
           created_at?: string
           id?: string
           parent_id?: string | null
           podcast_id?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "podcast_comments_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "comment_bots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "podcast_comments_parent_id_fkey"
             columns: ["parent_id"]
