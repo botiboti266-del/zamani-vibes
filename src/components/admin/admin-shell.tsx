@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Mic, FileText, MessageSquare, Mail, Users,
-  Tag, Music4, BarChart3, Inbox, Home, Globe, Sparkles, Headphones,
+  Tag, Music4, BarChart3, Inbox, Home, Globe, Sparkles, Headphones, Bot,
 } from "lucide-react";
 
 const ITEMS = [
@@ -12,6 +12,7 @@ const ITEMS = [
   { to: "/admin/vibes", label: "Daily Vibes", icon: Sparkles },
   { to: "/admin/studio", label: "Studio", icon: Music4 },
   { to: "/admin/comments", label: "Comments", icon: MessageSquare },
+  { to: "/admin/auto-comments", label: "Auto-comments", icon: Bot },
   { to: "/admin/messages", label: "Inbox", icon: Inbox },
   { to: "/admin/subscribers", label: "Newsletter", icon: Mail },
   { to: "/admin/categories", label: "Categories", icon: Tag },
@@ -20,6 +21,7 @@ const ITEMS = [
   { to: "/admin/seo", label: "SEO", icon: Globe },
   { to: "/admin/users", label: "Users", icon: Users },
 ];
+
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const loc = useLocation();

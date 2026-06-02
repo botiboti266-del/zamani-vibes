@@ -27,10 +27,13 @@ interface CommentRow {
   id: string;
   content: string;
   created_at: string;
-  user_id: string;
+  user_id: string | null;
+  bot_id: string | null;
   parent_id: string | null;
   profile?: { display_name: string | null; avatar_url: string | null } | null;
+  bot?: { display_name: string; country: string } | null;
 }
+
 
 function PodcastPage() {
   const { slug } = Route.useParams();
@@ -77,22 +80,27 @@ function PodcastPage() {
     queryFn: async () => {
       const { data: rows } = await supabase
         .from("podcast_comments")
-        .select("id,content,created_at,user_id,parent_id")
+        .select("id,content,created_at,user_id,bot_id,parent_id")
         .eq("podcast_id", q.data!.id)
         .order("created_at", { ascending: true });
-      const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+      const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id).filter((v): v is string => !!v)));
+      const botIds = Array.from(new Set((rows ?? []).map((r) => r.bot_id).filter((v): v is string => !!v)));
       let profiles: any[] = [];
-      if (ids.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id,display_name,avatar_url")
-          .in("user_id", ids);
+      let bots: any[] = [];
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id,display_name,avatar_url").in("user_id", userIds);
         profiles = profs ?? [];
+      }
+      if (botIds.length > 0) {
+        const { data: bs } = await supabase.from("comment_bots").select("id,display_name,country").in("id", botIds);
+        bots = bs ?? [];
       }
       return (rows ?? []).map((r) => ({
         ...r,
-        profile: profiles.find((p) => p.user_id === r.user_id) ?? null,
+        profile: r.user_id ? profiles.find((p) => p.user_id === r.user_id) ?? null : null,
+        bot: r.bot_id ? bots.find((b) => b.id === r.bot_id) ?? null : null,
       })) as CommentRow[];
+
     },
   });
 
@@ -440,19 +448,26 @@ function CommentItem({
 
 function CommentHeader({ c, small }: { c: CommentRow; small?: boolean }) {
   const size = small ? "h-7 w-7 text-[10px]" : "h-8 w-8 text-xs";
+  const name = c.bot?.display_name ?? c.profile?.display_name ?? "Listener";
+  const avatar = c.profile?.avatar_url;
+  const country = c.bot?.country;
   return (
     <div className="flex items-center gap-2">
-      {c.profile?.avatar_url ? (
-        <img src={c.profile.avatar_url} alt="" className={`${size} rounded-full object-cover`} />
+      {avatar ? (
+        <img src={avatar} alt="" className={`${size} rounded-full object-cover`} />
       ) : (
         <div className={`${size} rounded-full bg-gradient-gold flex items-center justify-center font-semibold text-primary-foreground`}>
-          {(c.profile?.display_name ?? "?")[0]?.toUpperCase() ?? "?"}
+          {name[0]?.toUpperCase() ?? "?"}
         </div>
       )}
       <div>
-        <div className="text-sm font-semibold">{c.profile?.display_name ?? "Listener"}</div>
+        <div className="text-sm font-semibold flex items-center gap-1.5">
+          {name}
+          {country && <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-[color:var(--gold)]">{country}</span>}
+        </div>
         <div className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
       </div>
     </div>
   );
 }
+
