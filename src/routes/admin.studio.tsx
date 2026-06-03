@@ -36,6 +36,11 @@ function Studio() {
   const musicGainRef = useRef<GainNode | null>(null);
   const fxGainRef = useRef<GainNode | null>(null);
   const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
+  const noiseHpfRef = useRef<BiquadFilterNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const echoDelayRef = useRef<DelayNode | null>(null);
+  const echoFeedbackRef = useRef<GainNode | null>(null);
+  const echoWetRef = useRef<GainNode | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const musicAnalyserRef = useRef<AnalyserNode | null>(null);
   const musicElRef = useRef<HTMLAudioElement | null>(null);
@@ -67,6 +72,15 @@ function Studio() {
 
   // EQ gains (-12 to +12 dB)
   const [eqGains, setEqGains] = useState<number[]>(() => EQ_BANDS.map(() => 0));
+
+  // Noise filter + echo
+  const [noiseFilterEnabled, setNoiseFilterEnabled] = useState(true);
+  const [noiseHpfHz, setNoiseHpfHz] = useState(85);
+  const [compressorAmount, setCompressorAmount] = useState(0.6); // 0..1
+  const [echoEnabled, setEchoEnabled] = useState(false);
+  const [echoDelayMs, setEchoDelayMs] = useState(220);
+  const [echoFeedback, setEchoFeedback] = useState(0.3);
+  const [echoMix, setEchoMix] = useState(0.25);
 
   // Trim
   const [trimStart, setTrimStart] = useState(0);
@@ -134,6 +148,28 @@ function Studio() {
     });
   }, [eqGains]);
 
+  // Live-apply noise filter & echo settings
+  useEffect(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    if (noiseHpfRef.current) {
+      noiseHpfRef.current.frequency.setTargetAtTime(noiseFilterEnabled ? noiseHpfHz : 20, ctx.currentTime, 0.05);
+    }
+    if (compressorRef.current) {
+      const amt = noiseFilterEnabled ? compressorAmount : 0;
+      compressorRef.current.threshold.setTargetAtTime(-18 - amt * 18, ctx.currentTime, 0.05);
+      compressorRef.current.ratio.setTargetAtTime(2 + amt * 8, ctx.currentTime, 0.05);
+    }
+  }, [noiseFilterEnabled, noiseHpfHz, compressorAmount]);
+
+  useEffect(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    if (echoDelayRef.current) echoDelayRef.current.delayTime.setTargetAtTime(Math.max(0.01, echoDelayMs / 1000), ctx.currentTime, 0.05);
+    if (echoFeedbackRef.current) echoFeedbackRef.current.gain.setTargetAtTime(echoEnabled ? echoFeedback : 0, ctx.currentTime, 0.05);
+    if (echoWetRef.current) echoWetRef.current.gain.setTargetAtTime(echoEnabled ? echoMix : 0, ctx.currentTime, 0.05);
+  }, [echoEnabled, echoDelayMs, echoFeedback, echoMix]);
+
   const drawWave = () => {
     const canvas = canvasRef.current!;
     const c = canvas.getContext("2d")!;
@@ -180,7 +216,7 @@ function Studio() {
     const dest = ctx.createMediaStreamDestination();
     destRef.current = dest;
 
-    // mic → EQ chain → gain → analyser → dest
+    // mic → EQ chain → noise HPF → compressor → (echo wet ⨁ dry) → gain → analyser → dest
     const micSrc = ctx.createMediaStreamSource(micStream);
     const filters: BiquadFilterNode[] = EQ_BANDS.map((freq, i) => {
       const f = ctx.createBiquadFilter();
@@ -194,11 +230,50 @@ function Studio() {
     let node: AudioNode = micSrc;
     for (const f of filters) { node.connect(f); node = f; }
 
+    // Noise filter: high-pass + dynamics compressor (tames hum, hiss, plosives)
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = "highpass";
+    hpf.frequency.value = noiseFilterEnabled ? noiseHpfHz : 20;
+    hpf.Q.value = 0.7;
+    noiseHpfRef.current = hpf;
+    node.connect(hpf);
+    node = hpf;
+
+    const comp = ctx.createDynamicsCompressor();
+    const amt = noiseFilterEnabled ? compressorAmount : 0;
+    comp.threshold.value = -18 - amt * 18; // -18..-36 dB
+    comp.knee.value = 24;
+    comp.ratio.value = 2 + amt * 8;        // 2:1..10:1
+    comp.attack.value = 0.005;
+    comp.release.value = 0.18;
+    compressorRef.current = comp;
+    node.connect(comp);
+    node = comp;
+
+    // Echo: feedback delay line, blended into the mic bus.
+    const echoIn = ctx.createGain();
+    echoIn.gain.value = 1;
+    const delay = ctx.createDelay(2.0);
+    delay.delayTime.value = Math.max(0.01, echoDelayMs / 1000);
+    const feedback = ctx.createGain();
+    feedback.gain.value = echoEnabled ? echoFeedback : 0;
+    const wet = ctx.createGain();
+    wet.gain.value = echoEnabled ? echoMix : 0;
+    node.connect(echoIn);
+    echoIn.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(wet);
+    echoDelayRef.current = delay;
+    echoFeedbackRef.current = feedback;
+    echoWetRef.current = wet;
+
     const micGain = ctx.createGain();
     micGain.gain.value = micVolume;
     const micAn = ctx.createAnalyser();
     micAn.fftSize = 256;
-    node.connect(micGain);
+    node.connect(micGain);       // dry path
+    wet.connect(micGain);        // echo wet path
     micGain.connect(micAn);
     micGain.connect(dest);
     micGainRef.current = micGain;
@@ -257,7 +332,13 @@ function Studio() {
 
   const start = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: noiseFilterEnabled,
+          autoGainControl: true,
+        } as MediaTrackConstraints,
+      });
       streamRef.current = stream;
       await setupContext(stream);
 
