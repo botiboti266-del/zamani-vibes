@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     const tos = Array.isArray(body.to) ? body.to : [body.to];
     await client.send({
-      from: `${body.from_name ?? "Sauti ya Zamani"} <${user}>`,
+      from: `${body.from_name ?? "Zamani Vibes"} <${user}>`,
       to: tos,
       subject: body.subject,
       content: body.text ?? body.html.replace(/<[^>]+>/g, " "),
