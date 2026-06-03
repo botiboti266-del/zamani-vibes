@@ -11,7 +11,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 function esc(s: string) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!)); }
 function html(p: { title: string; excerpt?: string; cover?: string; url: string }) {
   return `<div style="font-family:Inter,Arial,sans-serif;background:#0b0b0d;color:#f5f3ee;padding:32px;border-radius:16px;max-width:560px;margin:auto">
-    <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c">New article • Sauti ya Zamani</div>
+    <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c">New article • Zamani Vibes</div>
     <h1 style="font-family:Georgia,serif;font-size:28px;margin:8px 0 16px">${esc(p.title)}</h1>
     ${p.cover ? `<img src="${p.cover}" alt="" style="width:100%;border-radius:12px;margin-bottom:16px"/>` : ""}
     ${p.excerpt ? `<p style="font-size:15px;line-height:1.6;color:#d7d2c5">${esc(p.excerpt)}</p>` : ""}
