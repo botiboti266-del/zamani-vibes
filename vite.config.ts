@@ -3,13 +3,31 @@
 //   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare (build-only),
 //     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
 //     error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... } }) if needed.
+// We add the Netlify TanStack Start plugin alongside the Cloudflare output so the same
+// project deploys to both Lovable (Workers) and Netlify (Functions) with SSR.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import netlify from "@netlify/vite-plugin-tanstack-start";
 
-// Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-// @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
 export default defineConfig({
+  plugins: [netlify()],
   tanstackStart: {
     server: { entry: "server" },
+  },
+  vite: {
+    build: {
+      outDir: ".output",
+    },
+    environments: {
+      client: {
+        build: {
+          outDir: ".output/public",
+        },
+      },
+      ssr: {
+        build: {
+          outDir: ".output/server",
+        },
+      },
+    },
   },
 });
