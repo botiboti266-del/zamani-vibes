@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/podcasts/")({
   component: PodcastsList,
 });
+
 
 function PodcastsList() {
   const qc = useQueryClient();
@@ -27,6 +28,16 @@ function PodcastsList() {
     if (error) toast.error(error.message);
     else { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-podcasts"] }); }
   };
+
+  const notify = async (id: string, title: string) => {
+    if (!confirm(`Email all confirmed subscribers about "${title}"?`)) return;
+    const t = toast.loading("Sending emails…");
+    const r = await supabase.functions.invoke("notify-new-episode", { body: { podcast_id: id } });
+    toast.dismiss(t);
+    if (r.error) toast.error(r.error.message);
+    else toast.success(`Sent to ${r.data?.sent ?? 0} subscriber(s)`);
+  };
+
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -59,12 +70,16 @@ function PodcastsList() {
                 <td className="p-3 text-right">
                   <div className="inline-flex gap-1">
                     {p.status === "published" && (
-                      <Link to="/podcasts/$slug" params={{ slug: p.slug }} className="p-2 rounded-lg hover:bg-secondary" title="View"><Eye className="h-4 w-4" /></Link>
+                      <>
+                        <Link to="/podcasts/$slug" params={{ slug: p.slug }} className="p-2 rounded-lg hover:bg-secondary" title="View"><Eye className="h-4 w-4" /></Link>
+                        <button onClick={() => notify(p.id, p.title)} className="p-2 rounded-lg hover:bg-secondary text-[color:var(--gold)]" title="Email subscribers"><Mail className="h-4 w-4" /></button>
+                      </>
                     )}
                     <Link to="/admin/podcasts/$id" params={{ id: p.id }} className="p-2 rounded-lg hover:bg-secondary" title="Edit"><Edit className="h-4 w-4" /></Link>
                     <button onClick={() => del(p.id)} className="p-2 rounded-lg hover:bg-destructive/20 text-destructive" title="Delete"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 </td>
+
               </tr>
             ))}
             {q.data && q.data.length === 0 && (
