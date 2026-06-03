@@ -680,6 +680,51 @@ function Studio() {
             </div>
           </div>
 
+          {/* Noise filter */}
+          <div className="glass rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg flex items-center gap-2"><Sliders className="h-4 w-4 text-[color:var(--gold)]" /> Noise filter</h3>
+              <label className="text-xs inline-flex items-center gap-2">
+                <input type="checkbox" checked={noiseFilterEnabled} onChange={(e) => setNoiseFilterEnabled(e.target.checked)} />
+                {noiseFilterEnabled ? "On" : "Off"}
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">High-pass removes hum & rumble. Compressor evens dynamics and softens hiss.</p>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">High-pass — {noiseHpfHz} Hz</span>
+              <input type="range" min={20} max={250} step={5} value={noiseHpfHz} disabled={!noiseFilterEnabled} onChange={(e) => setNoiseHpfHz(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">Compression — {Math.round(compressorAmount * 100)}%</span>
+              <input type="range" min={0} max={1} step={0.01} value={compressorAmount} disabled={!noiseFilterEnabled} onChange={(e) => setCompressorAmount(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+          </div>
+
+          {/* Echo */}
+          <div className="glass rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg flex items-center gap-2"><Radio className="h-4 w-4 text-[color:var(--gold)]" /> Echo</h3>
+              <label className="text-xs inline-flex items-center gap-2">
+                <input type="checkbox" checked={echoEnabled} onChange={(e) => setEchoEnabled(e.target.checked)} />
+                {echoEnabled ? "On" : "Off"}
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Subtle slap-back or radio-style repeats. Keep mix low for natural voice.</p>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">Delay — {echoDelayMs} ms</span>
+              <input type="range" min={40} max={900} step={10} value={echoDelayMs} disabled={!echoEnabled} onChange={(e) => setEchoDelayMs(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">Feedback — {Math.round(echoFeedback * 100)}%</span>
+              <input type="range" min={0} max={0.9} step={0.01} value={echoFeedback} disabled={!echoEnabled} onChange={(e) => setEchoFeedback(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">Mix — {Math.round(echoMix * 100)}%</span>
+              <input type="range" min={0} max={1} step={0.01} value={echoMix} disabled={!echoEnabled} onChange={(e) => setEchoMix(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+          </div>
+
+
           <div className="glass rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Music4 className="h-4 w-4 text-[color:var(--gold)]" /> Music library</h3>
