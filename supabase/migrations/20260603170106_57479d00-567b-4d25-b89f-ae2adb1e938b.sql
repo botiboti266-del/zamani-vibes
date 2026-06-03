@@ -1,0 +1,2 @@
+ALTER TABLE public.podcast_comment_schedules DROP CONSTRAINT IF EXISTS podcast_comment_schedules_interval_minutes_check;
+ALTER TABLE public.podcast_comment_schedules ADD CONSTRAINT podcast_comment_schedules_interval_minutes_check CHECK (interval_minutes >= 1);

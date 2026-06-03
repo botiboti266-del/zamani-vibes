@@ -610,7 +610,11 @@ function Studio() {
             <p className="text-xs text-muted-foreground">Royalty-free only. Files are private to your account. Upload multiple at once.</p>
 
             {selectedTrack && (
-              <audio ref={musicElRef} src={selectedTrack.url} loop crossOrigin="anonymous" className="hidden" />
+              <div className="rounded-xl bg-secondary/50 border border-border p-3 space-y-1">
+                <div className="text-xs text-[color:var(--gold)] truncate">▶ {selectedTrack.name}</div>
+                <audio ref={musicElRef} src={selectedTrack.url} loop crossOrigin="anonymous" controls preload="metadata" className="w-full" />
+                <p className="text-[10px] text-muted-foreground">Play, pause, seek. Auto-fades when you record if ducking is on.</p>
+              </div>
             )}
 
             <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
