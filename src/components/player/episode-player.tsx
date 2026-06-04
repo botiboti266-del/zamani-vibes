@@ -30,11 +30,20 @@ export function EpisodePlayer({
   const playing = active && player.playing;
   const position = active ? player.position : 0;
   const total = active ? player.duration || duration || 0 : duration || 0;
+  const [eqOpen, setEqOpen] = useState(false);
+  const EQ_PRESETS: Record<string, number[]> = {
+    Flat:    [0, 0, 0, 0, 0],
+    Voice:   [-3, 2, 4, 2, -1],
+    Bass:    [6, 3, 0, -1, -2],
+    Treble:  [-2, -1, 0, 3, 5],
+    Warm:    [3, 2, 0, -1, -3],
+  };
 
   const toggle = () => {
     if (!active) player.play(track);
     else player.toggle();
   };
+
 
   return (
     <section className="glass rounded-2xl p-4 md:p-5 shadow-elegant">
