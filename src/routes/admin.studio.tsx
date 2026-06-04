@@ -745,7 +745,7 @@ function Studio() {
         </div>
 
         {/* Right column: mixer + music library */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="glass rounded-2xl p-6 space-y-4">
             <h3 className="font-display text-lg flex items-center gap-2"><Headphones className="h-4 w-4 text-[color:var(--gold)]" /> Mixer</h3>
             <Slider label={<><Mic className="h-3.5 w-3.5 inline mr-1" /> Mic volume — {peak(micVolume)}%</>} value={micVolume} onChange={setMicVolume} />
