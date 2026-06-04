@@ -275,23 +275,28 @@ function Studio() {
     node.connect(comp);
     node = comp;
 
-    // Echo: feedback delay line, blended into the mic bus.
+    // Echo: feedback delay with damping lowpass in the loop, blended into the mic bus.
     const echoIn = ctx.createGain();
     echoIn.gain.value = 1;
     const delay = ctx.createDelay(2.0);
     delay.delayTime.value = Math.max(0.01, echoDelayMs / 1000);
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = "lowpass";
+    lpf.frequency.value = echoDamping;
     const feedback = ctx.createGain();
     feedback.gain.value = echoEnabled ? echoFeedback : 0;
     const wet = ctx.createGain();
     wet.gain.value = echoEnabled ? echoMix : 0;
     node.connect(echoIn);
     echoIn.connect(delay);
-    delay.connect(feedback);
+    delay.connect(lpf);
+    lpf.connect(feedback);
     feedback.connect(delay);
     delay.connect(wet);
     echoDelayRef.current = delay;
     echoFeedbackRef.current = feedback;
     echoWetRef.current = wet;
+    echoLpfRef.current = lpf;
 
     const micGain = ctx.createGain();
     micGain.gain.value = micVolume;
