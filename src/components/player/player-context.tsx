@@ -10,6 +10,8 @@ export interface Track {
   slug?: string;
 }
 
+export const PLAYER_EQ_BANDS = [60, 250, 1000, 4000, 12000];
+
 interface PlayerState {
   current: Track | null;
   queue: Track[];
@@ -20,6 +22,11 @@ interface PlayerState {
   duration: number;
   speed: number;
   volume: number;
+  eqEnabled: boolean;
+  eqGains: number[];
+  setEqEnabled: (v: boolean) => void;
+  setEqGain: (band: number, v: number) => void;
+  resetEq: () => void;
   play: (track: Track, queue?: Track[]) => void;
   toggle: () => void;
   next: () => void;
@@ -30,6 +37,7 @@ interface PlayerState {
   enqueue: (t: Track) => void;
   clearQueue: () => void;
 }
+
 
 const Ctx = createContext<PlayerState | null>(null);
 
