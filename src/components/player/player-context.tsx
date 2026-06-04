@@ -84,7 +84,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const v = readLS<number>(LS_VOLUME); if (v != null) setVolumeState(v);
     const c = readLS<Track>(LS_CURRENT); if (c) setCurrent(c);
     const q = readLS<Track[]>(LS_QUEUE); if (q) setQueue(q);
+    const eq = readLS<{ enabled: boolean; gains: number[] }>(LS_EQ);
+    if (eq) {
+      setEqEnabledState(!!eq.enabled);
+      if (Array.isArray(eq.gains) && eq.gains.length === PLAYER_EQ_BANDS.length) setEqGains(eq.gains);
+    }
   }, []);
+
 
   // track user id for history sync
   useEffect(() => {
