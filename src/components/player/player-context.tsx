@@ -275,14 +275,34 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const enqueue = useCallback((t: Track) => setQueue((q) => (q.find((x) => x.id === t.id) ? q : [...q, t])), []);
   const clearQueue = useCallback(() => setQueue([]), []);
 
+  // Apply EQ gains live (smooth automation)
+  useEffect(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || eqFiltersRef.current.length === 0) return;
+    eqFiltersRef.current.forEach((f, i) => {
+      const g = eqEnabled ? (eqGains[i] ?? 0) : 0;
+      f.gain.setTargetAtTime(g, ctx.currentTime, 0.05);
+    });
+    writeLS(LS_EQ, { enabled: eqEnabled, gains: eqGains });
+  }, [eqEnabled, eqGains]);
+
+  const setEqEnabled = useCallback((v: boolean) => setEqEnabledState(v), []);
+  const setEqGain = useCallback((band: number, v: number) => {
+    setEqGains((prev) => prev.map((p, i) => (i === band ? v : p)));
+  }, []);
+  const resetEq = useCallback(() => setEqGains(PLAYER_EQ_BANDS.map(() => 0)), []);
+
   const value = useMemo(() => ({
     current, queue, playing, loading, error, position, duration, speed, volume,
+    eqEnabled, eqGains, setEqEnabled, setEqGain, resetEq,
     play, toggle, next, prev, seek, setSpeed, setVolume, enqueue, clearQueue,
   }), [current, queue, playing, loading, error, position, duration, speed, volume,
+      eqEnabled, eqGains, setEqEnabled, setEqGain, resetEq,
       play, toggle, next, prev, seek, setSpeed, setVolume, enqueue, clearQueue]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+
 
 export function usePlayer() {
   const v = useContext(Ctx);
