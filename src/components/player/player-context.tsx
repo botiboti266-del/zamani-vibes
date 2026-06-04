@@ -225,6 +225,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const play = useCallback((track: Track, q: Track[] = []) => {
     autoPlayRef.current = true;
     setQueue(q);
+    audioCtxRef.current?.resume().catch(() => {});
     // If same track, just play
     const a = audioRef.current;
     if (current && current.id === track.id && a) {
@@ -238,9 +239,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = audioRef.current;
     if (!a || !current) return;
     autoPlayRef.current = true;
+    audioCtxRef.current?.resume().catch(() => {});
     if (a.paused) { a.play().then(() => setPlaying(true)).catch(() => setPlaying(false)); }
     else { a.pause(); setPlaying(false); }
   }, [current]);
+
 
   const next = useCallback(() => {
     autoPlayRef.current = true;
