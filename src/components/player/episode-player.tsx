@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Clock, Download, ExternalLink, Gauge, Pause, Play, Share2, SkipBack, SkipForward, Volume2 } from "lucide-react";
-import { usePlayer, type Track } from "./player-context";
+import { useState } from "react";
+import { Clock, Download, ExternalLink, Gauge, Pause, Play, Share2, SkipBack, SkipForward, Sliders, Volume2 } from "lucide-react";
+import { PLAYER_EQ_BANDS, usePlayer, type Track } from "./player-context";
+
 
 function fmt(s: number | null | undefined) {
   if (!s || !isFinite(s)) return "0:00";
