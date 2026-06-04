@@ -132,7 +132,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
     } catch { /* fallback: element plays normally */ }
 
+    const onTime = () => {
       setPosition(a.currentTime);
+
       // persist position locally
       if (current) {
         try { localStorage.setItem(`syz-pos-${current.id}`, String(a.currentTime)); } catch {}
