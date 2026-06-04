@@ -179,7 +179,8 @@ function Studio() {
     if (echoDelayRef.current) echoDelayRef.current.delayTime.setTargetAtTime(Math.max(0.01, echoDelayMs / 1000), ctx.currentTime, 0.05);
     if (echoFeedbackRef.current) echoFeedbackRef.current.gain.setTargetAtTime(echoEnabled ? echoFeedback : 0, ctx.currentTime, 0.05);
     if (echoWetRef.current) echoWetRef.current.gain.setTargetAtTime(echoEnabled ? echoMix : 0, ctx.currentTime, 0.05);
-  }, [echoEnabled, echoDelayMs, echoFeedback, echoMix]);
+    if (echoLpfRef.current) echoLpfRef.current.frequency.setTargetAtTime(echoDamping, ctx.currentTime, 0.05);
+  }, [echoEnabled, echoDelayMs, echoFeedback, echoMix, echoDamping]);
 
   const drawWave = () => {
     const canvas = canvasRef.current!;
