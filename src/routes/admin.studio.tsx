@@ -610,7 +610,7 @@ function Studio() {
   const peak = (v: number) => Math.round(v * 100);
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-8 animate-fade-up">
       <div>
         <h1 className="font-display text-3xl flex items-center gap-2"><Radio className="h-7 w-7 text-[color:var(--gold)]" /> Recording studio</h1>
         <p className="text-sm text-muted-foreground">Pro dashboard with mic, royalty-free music bed, 8-band EQ, FX pads, auto-ducking, fades and trim.</p>
