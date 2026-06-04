@@ -778,6 +778,12 @@ function Studio() {
               </label>
             </div>
             <p className="text-[11px] text-muted-foreground">High-pass removes hum & rumble. Compressor evens dynamics and softens hiss.</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => applyNoisePreset("studio")} className="px-2 py-2 rounded-lg bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] text-[11px] font-medium transition">Studio Voice</button>
+              <button onClick={() => applyNoisePreset("street")} className="px-2 py-2 rounded-lg bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] text-[11px] font-medium transition">Street Calm</button>
+              <button onClick={() => applyNoisePreset("hum")} className="px-2 py-2 rounded-lg bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] text-[11px] font-medium transition">Reduce Hum</button>
+            </div>
+
             <label className="block text-xs">
               <span className="block text-muted-foreground mb-1">High-pass — {noiseHpfHz} Hz</span>
               <input type="range" min={20} max={250} step={5} value={noiseHpfHz} disabled={!noiseFilterEnabled} onChange={(e) => setNoiseHpfHz(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
