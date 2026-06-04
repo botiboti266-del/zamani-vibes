@@ -616,7 +616,7 @@ function Studio() {
         <p className="text-sm text-muted-foreground">Pro dashboard with mic, royalty-free music bed, 8-band EQ, FX pads, auto-ducking, fades and trim.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[2fr_1fr] gap-6">
+      <div className="grid lg:grid-cols-[2fr_1fr] gap-8">
         {/* Main recording panel */}
         <div className="space-y-4">
           <div className="glass rounded-3xl p-6 space-y-4 shadow-elegant">
