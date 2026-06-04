@@ -491,6 +491,61 @@ function Studio() {
     finally { setTrimming(false); }
   };
 
+  const exportWav = async () => {
+    if (!blob) return;
+    try {
+      const ab = await blob.arrayBuffer();
+      const ctx = new AudioContext();
+      const dec = await ctx.decodeAudioData(ab.slice(0));
+      const wav = audioBufferToWav(dec);
+      ctx.close();
+      const wb = new Blob([wav], { type: "audio/wav" });
+      const u = URL.createObjectURL(wb);
+      const a = document.createElement("a");
+      a.href = u; a.download = `recording-${Date.now()}.wav`; a.click();
+      setTimeout(() => URL.revokeObjectURL(u), 1000);
+      toast.success("WAV downloaded");
+    } catch (e: any) { toast.error(e?.message ?? "Export failed"); }
+  };
+
+  const applyNoisePreset = (name: "studio" | "street" | "hum") => {
+    setNoiseFilterEnabled(true);
+    if (name === "studio") { setNoiseHpfHz(85); setCompressorAmount(0.55); }
+    if (name === "street") { setNoiseHpfHz(140); setCompressorAmount(0.8); }
+    if (name === "hum") { setNoiseHpfHz(110); setCompressorAmount(0.35); }
+    toast.success(`Preset applied: ${name === "studio" ? "Studio Voice" : name === "street" ? "Street Calm" : "Reduce Hum"}`);
+  };
+
+  const saveMixerPreset = () => {
+    const n = presetName.trim();
+    if (!n) { toast.error("Name required"); return; }
+    const data = {
+      micVolume, musicVolume, fxVolume, duckingEnabled, duckedLevel, fadeInSec, fadeOutSec,
+      eqGains, noiseFilterEnabled, noiseHpfHz, compressorAmount,
+      echoEnabled, echoDelayMs, echoFeedback, echoMix, echoDamping,
+    };
+    const next = { ...presets, [n]: data };
+    setPresets(next);
+    try { localStorage.setItem("syz-studio-presets", JSON.stringify(next)); } catch {}
+    setPresetName("");
+    toast.success(`Preset "${n}" saved`);
+  };
+  const loadMixerPreset = (name: string) => {
+    const p = presets[name]; if (!p) return;
+    setMicVolume(p.micVolume ?? 1); setMusicVolume(p.musicVolume ?? 0.4); setFxVolume(p.fxVolume ?? 0.8);
+    setDuckingEnabled(p.duckingEnabled ?? true); setDuckedLevel(p.duckedLevel ?? 0.1);
+    setFadeInSec(p.fadeInSec ?? 2); setFadeOutSec(p.fadeOutSec ?? 3);
+    setEqGains(p.eqGains ?? EQ_BANDS.map(() => 0));
+    setNoiseFilterEnabled(p.noiseFilterEnabled ?? true); setNoiseHpfHz(p.noiseHpfHz ?? 85); setCompressorAmount(p.compressorAmount ?? 0.6);
+    setEchoEnabled(p.echoEnabled ?? false); setEchoDelayMs(p.echoDelayMs ?? 220); setEchoFeedback(p.echoFeedback ?? 0.3); setEchoMix(p.echoMix ?? 0.25); setEchoDamping(p.echoDamping ?? 4500);
+    toast.success(`Loaded "${name}"`);
+  };
+  const deleteMixerPreset = (name: string) => {
+    const next = { ...presets }; delete next[name];
+    setPresets(next);
+    try { localStorage.setItem("syz-studio-presets", JSON.stringify(next)); } catch {}
+  };
+
   const upload = async () => {
     if (!blob || !user) return;
     setUploading(true);
