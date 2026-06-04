@@ -82,6 +82,16 @@ function Studio() {
   const [echoDelayMs, setEchoDelayMs] = useState(220);
   const [echoFeedback, setEchoFeedback] = useState(0.3);
   const [echoMix, setEchoMix] = useState(0.25);
+  const [echoDamping, setEchoDamping] = useState(4500);
+  const [micPeak, setMicPeak] = useState(0);
+  const [musicPeak, setMusicPeak] = useState(0);
+  const [micClip, setMicClip] = useState(false);
+  const [musicClip, setMusicClip] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [presets, setPresets] = useState<Record<string, any>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem(`syz-studio-presets`) || "{}"); } catch { return {}; }
+  });
 
   // Trim
   const [trimStart, setTrimStart] = useState(0);
