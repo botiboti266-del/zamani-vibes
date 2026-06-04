@@ -107,7 +107,31 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = new Audio();
     a.preload = "metadata";
     audioRef.current = a;
-    const onTime = () => {
+    // Web Audio EQ chain (built once on element creation)
+    try {
+      if (!audioCtxRef.current) {
+        const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (Ctor) audioCtxRef.current = new Ctor();
+      }
+      const actx = audioCtxRef.current;
+      if (actx) {
+        const src = actx.createMediaElementSource(a);
+        srcNodeRef.current = src;
+        const filters = PLAYER_EQ_BANDS.map((freq, i) => {
+          const f = actx.createBiquadFilter();
+          f.type = i === 0 ? "lowshelf" : i === PLAYER_EQ_BANDS.length - 1 ? "highshelf" : "peaking";
+          f.frequency.value = freq;
+          f.Q.value = 1.0;
+          f.gain.value = eqEnabled ? (eqGains[i] ?? 0) : 0;
+          return f;
+        });
+        eqFiltersRef.current = filters;
+        let node: AudioNode = src;
+        for (const f of filters) { node.connect(f); node = f; }
+        node.connect(actx.destination);
+      }
+    } catch { /* fallback: element plays normally */ }
+
       setPosition(a.currentTime);
       // persist position locally
       if (current) {
