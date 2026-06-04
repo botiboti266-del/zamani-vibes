@@ -854,19 +854,25 @@ function Studio() {
   );
 }
 
-function Meter({ label, icon: Icon, level, color }: { label: string; icon: any; level: number; color: string }) {
+function Meter({ label, icon: Icon, level, peak = 0, clip = false, color }: { label: string; icon: any; level: number; peak?: number; clip?: boolean; color: string }) {
   return (
     <div className="glass rounded-xl p-3">
       <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
         <span className="inline-flex items-center gap-1"><Icon className="h-3 w-3" /> {label}</span>
-        <span className="tabular-nums">{Math.round(level * 100)}%</span>
+        <span className="inline-flex items-center gap-2">
+          {clip && <span className="text-[10px] uppercase font-bold tracking-wider text-red-500 px-1.5 py-0.5 rounded bg-red-500/15 animate-pulse">Clip</span>}
+          <span className="tabular-nums">{Math.round(level * 100)}%</span>
+        </span>
       </div>
-      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+      <div className="relative h-2.5 rounded-full bg-secondary overflow-hidden">
         <div className={`${color} h-full transition-all duration-100`} style={{ width: `${Math.min(100, level * 140)}%` }} />
+        <div className="absolute top-0 bottom-0 w-0.5 bg-white/90 shadow transition-all duration-150" style={{ left: `${Math.min(100, peak * 140)}%` }} />
+        <div className="absolute top-0 bottom-0 right-0 w-[6%] bg-red-500/15 pointer-events-none" />
       </div>
     </div>
   );
 }
+
 
 function Slider({ label, value, onChange }: { label: React.ReactNode; value: number; onChange: (v: number) => void }) {
   return (
