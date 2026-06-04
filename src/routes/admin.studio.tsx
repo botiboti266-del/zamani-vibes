@@ -618,7 +618,8 @@ function Studio() {
 
       <div className="grid lg:grid-cols-[2fr_1fr] gap-8">
         {/* Main recording panel */}
-        <div className="space-y-4">
+        <div className="space-y-6">
+
           <div className="glass rounded-3xl p-6 space-y-4 shadow-elegant">
             <canvas ref={canvasRef} width={800} height={160} className="w-full h-40 rounded-xl bg-secondary/40" />
 
