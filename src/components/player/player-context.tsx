@@ -59,6 +59,9 @@ function writeLS(key: string, v: unknown) {
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const srcNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
   const userIdRef = useRef<string | null>(null);
   const lastSyncRef = useRef<number>(0);
   const autoPlayRef = useRef<boolean>(false); // only autoplay after user gesture
@@ -71,6 +74,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [speed, setSpeedState] = useState(1);
   const [volume, setVolumeState] = useState(1);
+  const [eqEnabled, setEqEnabledState] = useState(false);
+  const [eqGains, setEqGains] = useState<number[]>(() => PLAYER_EQ_BANDS.map(() => 0));
+
 
   // restore preferences + last track (paused) on mount
   useEffect(() => {
