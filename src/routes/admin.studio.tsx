@@ -41,6 +41,7 @@ function Studio() {
   const echoDelayRef = useRef<DelayNode | null>(null);
   const echoFeedbackRef = useRef<GainNode | null>(null);
   const echoWetRef = useRef<GainNode | null>(null);
+  const echoLpfRef = useRef<BiquadFilterNode | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const musicAnalyserRef = useRef<AnalyserNode | null>(null);
   const musicElRef = useRef<HTMLAudioElement | null>(null);
@@ -81,6 +82,16 @@ function Studio() {
   const [echoDelayMs, setEchoDelayMs] = useState(220);
   const [echoFeedback, setEchoFeedback] = useState(0.3);
   const [echoMix, setEchoMix] = useState(0.25);
+  const [echoDamping, setEchoDamping] = useState(4500);
+  const [micPeak, setMicPeak] = useState(0);
+  const [musicPeak, setMusicPeak] = useState(0);
+  const [micClip, setMicClip] = useState(false);
+  const [musicClip, setMusicClip] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [presets, setPresets] = useState<Record<string, any>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem(`syz-studio-presets`) || "{}"); } catch { return {}; }
+  });
 
   // Trim
   const [trimStart, setTrimStart] = useState(0);
@@ -168,7 +179,8 @@ function Studio() {
     if (echoDelayRef.current) echoDelayRef.current.delayTime.setTargetAtTime(Math.max(0.01, echoDelayMs / 1000), ctx.currentTime, 0.05);
     if (echoFeedbackRef.current) echoFeedbackRef.current.gain.setTargetAtTime(echoEnabled ? echoFeedback : 0, ctx.currentTime, 0.05);
     if (echoWetRef.current) echoWetRef.current.gain.setTargetAtTime(echoEnabled ? echoMix : 0, ctx.currentTime, 0.05);
-  }, [echoEnabled, echoDelayMs, echoFeedback, echoMix]);
+    if (echoLpfRef.current) echoLpfRef.current.frequency.setTargetAtTime(echoDamping, ctx.currentTime, 0.05);
+  }, [echoEnabled, echoDelayMs, echoFeedback, echoMix, echoDamping]);
 
   const drawWave = () => {
     const canvas = canvasRef.current!;
@@ -178,33 +190,46 @@ function Studio() {
     if (!micAn) return;
     const micBuf = new Uint8Array(micAn.frequencyBinCount);
     const musicBuf = musicAn ? new Uint8Array(musicAn.frequencyBinCount) : null;
+    let mpHold = 0, muHold = 0;
     const loop = () => {
       micAn.getByteFrequencyData(micBuf);
       if (musicAn && musicBuf) musicAn.getByteFrequencyData(musicBuf);
       const W = canvas.width, H = canvas.height;
       c.clearRect(0, 0, W, H);
       const w = W / micBuf.length;
-      let micSum = 0;
+      let micSum = 0, micMax = 0;
       for (let i = 0; i < micBuf.length; i++) {
-        const h = (micBuf[i] / 255) * H * 0.9;
-        micSum += micBuf[i];
+        const v = micBuf[i];
+        if (v > micMax) micMax = v;
+        const h = (v / 255) * H * 0.9;
+        micSum += v;
         const grad = c.createLinearGradient(0, H - h, 0, H);
         grad.addColorStop(0, "#f5c451");
         grad.addColorStop(1, "#b8860b");
         c.fillStyle = grad;
         c.fillRect(i * w, H - h, w - 1, h);
       }
+      const micPk = micMax / 255;
+      mpHold = Math.max(micPk, mpHold * 0.92);
+      setMicLevel(micSum / micBuf.length / 255);
+      setMicPeak(mpHold);
+      setMicClip(micPk > 0.97);
       if (musicBuf) {
-        let musicSum = 0;
+        let musicSum = 0, musicMax = 0;
         for (let i = 0; i < musicBuf.length; i++) {
-          const h = (musicBuf[i] / 255) * H * 0.5;
-          musicSum += musicBuf[i];
+          const v = musicBuf[i];
+          if (v > musicMax) musicMax = v;
+          const h = (v / 255) * H * 0.5;
+          musicSum += v;
           c.fillStyle = "rgba(96, 165, 250, 0.35)";
           c.fillRect(i * w, H - h, w - 1, h);
         }
+        const musicPk = musicMax / 255;
+        muHold = Math.max(musicPk, muHold * 0.92);
         setMusicLevel(musicSum / musicBuf.length / 255);
+        setMusicPeak(muHold);
+        setMusicClip(musicPk > 0.97);
       }
-      setMicLevel(micSum / micBuf.length / 255);
       rafRef.current = requestAnimationFrame(loop);
     };
     loop();
@@ -250,23 +275,28 @@ function Studio() {
     node.connect(comp);
     node = comp;
 
-    // Echo: feedback delay line, blended into the mic bus.
+    // Echo: feedback delay with damping lowpass in the loop, blended into the mic bus.
     const echoIn = ctx.createGain();
     echoIn.gain.value = 1;
     const delay = ctx.createDelay(2.0);
     delay.delayTime.value = Math.max(0.01, echoDelayMs / 1000);
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = "lowpass";
+    lpf.frequency.value = echoDamping;
     const feedback = ctx.createGain();
     feedback.gain.value = echoEnabled ? echoFeedback : 0;
     const wet = ctx.createGain();
     wet.gain.value = echoEnabled ? echoMix : 0;
     node.connect(echoIn);
     echoIn.connect(delay);
-    delay.connect(feedback);
+    delay.connect(lpf);
+    lpf.connect(feedback);
     feedback.connect(delay);
     delay.connect(wet);
     echoDelayRef.current = delay;
     echoFeedbackRef.current = feedback;
     echoWetRef.current = wet;
+    echoLpfRef.current = lpf;
 
     const micGain = ctx.createGain();
     micGain.gain.value = micVolume;
@@ -461,6 +491,61 @@ function Studio() {
     finally { setTrimming(false); }
   };
 
+  const exportWav = async () => {
+    if (!blob) return;
+    try {
+      const ab = await blob.arrayBuffer();
+      const ctx = new AudioContext();
+      const dec = await ctx.decodeAudioData(ab.slice(0));
+      const wav = audioBufferToWav(dec);
+      ctx.close();
+      const wb = new Blob([wav], { type: "audio/wav" });
+      const u = URL.createObjectURL(wb);
+      const a = document.createElement("a");
+      a.href = u; a.download = `recording-${Date.now()}.wav`; a.click();
+      setTimeout(() => URL.revokeObjectURL(u), 1000);
+      toast.success("WAV downloaded");
+    } catch (e: any) { toast.error(e?.message ?? "Export failed"); }
+  };
+
+  const applyNoisePreset = (name: "studio" | "street" | "hum") => {
+    setNoiseFilterEnabled(true);
+    if (name === "studio") { setNoiseHpfHz(85); setCompressorAmount(0.55); }
+    if (name === "street") { setNoiseHpfHz(140); setCompressorAmount(0.8); }
+    if (name === "hum") { setNoiseHpfHz(110); setCompressorAmount(0.35); }
+    toast.success(`Preset applied: ${name === "studio" ? "Studio Voice" : name === "street" ? "Street Calm" : "Reduce Hum"}`);
+  };
+
+  const saveMixerPreset = () => {
+    const n = presetName.trim();
+    if (!n) { toast.error("Name required"); return; }
+    const data = {
+      micVolume, musicVolume, fxVolume, duckingEnabled, duckedLevel, fadeInSec, fadeOutSec,
+      eqGains, noiseFilterEnabled, noiseHpfHz, compressorAmount,
+      echoEnabled, echoDelayMs, echoFeedback, echoMix, echoDamping,
+    };
+    const next = { ...presets, [n]: data };
+    setPresets(next);
+    try { localStorage.setItem("syz-studio-presets", JSON.stringify(next)); } catch {}
+    setPresetName("");
+    toast.success(`Preset "${n}" saved`);
+  };
+  const loadMixerPreset = (name: string) => {
+    const p = presets[name]; if (!p) return;
+    setMicVolume(p.micVolume ?? 1); setMusicVolume(p.musicVolume ?? 0.4); setFxVolume(p.fxVolume ?? 0.8);
+    setDuckingEnabled(p.duckingEnabled ?? true); setDuckedLevel(p.duckedLevel ?? 0.1);
+    setFadeInSec(p.fadeInSec ?? 2); setFadeOutSec(p.fadeOutSec ?? 3);
+    setEqGains(p.eqGains ?? EQ_BANDS.map(() => 0));
+    setNoiseFilterEnabled(p.noiseFilterEnabled ?? true); setNoiseHpfHz(p.noiseHpfHz ?? 85); setCompressorAmount(p.compressorAmount ?? 0.6);
+    setEchoEnabled(p.echoEnabled ?? false); setEchoDelayMs(p.echoDelayMs ?? 220); setEchoFeedback(p.echoFeedback ?? 0.3); setEchoMix(p.echoMix ?? 0.25); setEchoDamping(p.echoDamping ?? 4500);
+    toast.success(`Loaded "${name}"`);
+  };
+  const deleteMixerPreset = (name: string) => {
+    const next = { ...presets }; delete next[name];
+    setPresets(next);
+    try { localStorage.setItem("syz-studio-presets", JSON.stringify(next)); } catch {}
+  };
+
   const upload = async () => {
     if (!blob || !user) return;
     setUploading(true);
@@ -525,21 +610,23 @@ function Studio() {
   const peak = (v: number) => Math.round(v * 100);
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-8 animate-fade-up">
       <div>
         <h1 className="font-display text-3xl flex items-center gap-2"><Radio className="h-7 w-7 text-[color:var(--gold)]" /> Recording studio</h1>
         <p className="text-sm text-muted-foreground">Pro dashboard with mic, royalty-free music bed, 8-band EQ, FX pads, auto-ducking, fades and trim.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[2fr_1fr] gap-6">
+      <div className="grid lg:grid-cols-[2fr_1fr] gap-8">
         {/* Main recording panel */}
-        <div className="space-y-4">
+        <div className="space-y-6">
+
           <div className="glass rounded-3xl p-6 space-y-4 shadow-elegant">
             <canvas ref={canvasRef} width={800} height={160} className="w-full h-40 rounded-xl bg-secondary/40" />
 
             <div className="grid grid-cols-2 gap-3">
-              <Meter label="Mic" icon={Mic} level={micLevel} color="bg-gradient-gold" />
-              <Meter label="Music" icon={Music2} level={musicLevel} color="bg-blue-500" />
+              <Meter label="Mic" icon={Mic} level={micLevel} peak={micPeak} clip={micClip} color="bg-gradient-gold" />
+              <Meter label="Music" icon={Music2} level={musicLevel} peak={musicPeak} clip={musicClip} color="bg-blue-500" />
+
             </div>
 
             <div className="text-center font-display text-5xl tabular-nums">{mm}:{ss}</div>
@@ -593,6 +680,8 @@ function Studio() {
                 <div className="flex flex-wrap gap-2 justify-end">
                   <button onClick={aiNotes} disabled={aiBusy} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm">{aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} AI show notes</button>
                   <a href={url} download={`recording-${Date.now()}.${blob?.type.includes("wav") ? "wav" : "webm"}`} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Download className="h-4 w-4" /> Download</a>
+                  <button onClick={exportWav} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Download className="h-4 w-4" /> Export WAV</button>
+
                   <button onClick={reset} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Trash2 className="h-4 w-4" /> Discard</button>
                   <button onClick={upload} disabled={uploading} className="px-5 py-2.5 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine inline-flex items-center gap-2">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save as draft</button>
                 </div>
@@ -601,7 +690,7 @@ function Studio() {
           </div>
 
           {/* 8-Band EQ */}
-          <div className="glass rounded-2xl p-5">
+          <div className="glass rounded-2xl p-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display text-lg flex items-center gap-2"><Sliders className="h-4 w-4 text-[color:var(--gold)]" /> 8-band equalizer</h3>
               <button onClick={() => setEqGains(EQ_BANDS.map(() => 0))} className="text-xs px-3 py-1 rounded-full bg-secondary">Reset</button>
@@ -627,7 +716,7 @@ function Studio() {
           </div>
 
           {/* FX pads */}
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Zap className="h-4 w-4 text-[color:var(--gold)]" /> FX & brand pads</h3>
               <label className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-gold text-primary-foreground cursor-pointer btn-shine">
@@ -656,8 +745,8 @@ function Studio() {
         </div>
 
         {/* Right column: mixer + music library */}
-        <div className="space-y-4">
-          <div className="glass rounded-2xl p-5 space-y-4">
+        <div className="space-y-6">
+          <div className="glass rounded-2xl p-6 space-y-4">
             <h3 className="font-display text-lg flex items-center gap-2"><Headphones className="h-4 w-4 text-[color:var(--gold)]" /> Mixer</h3>
             <Slider label={<><Mic className="h-3.5 w-3.5 inline mr-1" /> Mic volume — {peak(micVolume)}%</>} value={micVolume} onChange={setMicVolume} />
             <Slider label={<><Music2 className="h-3.5 w-3.5 inline mr-1" /> Music volume — {peak(musicVolume)}%</>} value={musicVolume} onChange={setMusicVolume} />
@@ -681,7 +770,7 @@ function Studio() {
           </div>
 
           {/* Noise filter */}
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Sliders className="h-4 w-4 text-[color:var(--gold)]" /> Noise filter</h3>
               <label className="text-xs inline-flex items-center gap-2">
@@ -690,6 +779,12 @@ function Studio() {
               </label>
             </div>
             <p className="text-[11px] text-muted-foreground">High-pass removes hum & rumble. Compressor evens dynamics and softens hiss.</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => applyNoisePreset("studio")} className="px-2 py-2 rounded-lg bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] text-[11px] font-medium transition">Studio Voice</button>
+              <button onClick={() => applyNoisePreset("street")} className="px-2 py-2 rounded-lg bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] text-[11px] font-medium transition">Street Calm</button>
+              <button onClick={() => applyNoisePreset("hum")} className="px-2 py-2 rounded-lg bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] text-[11px] font-medium transition">Reduce Hum</button>
+            </div>
+
             <label className="block text-xs">
               <span className="block text-muted-foreground mb-1">High-pass — {noiseHpfHz} Hz</span>
               <input type="range" min={20} max={250} step={5} value={noiseHpfHz} disabled={!noiseFilterEnabled} onChange={(e) => setNoiseHpfHz(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
@@ -701,7 +796,7 @@ function Studio() {
           </div>
 
           {/* Echo */}
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Radio className="h-4 w-4 text-[color:var(--gold)]" /> Echo</h3>
               <label className="text-xs inline-flex items-center gap-2">
@@ -719,13 +814,37 @@ function Studio() {
               <input type="range" min={0} max={0.9} step={0.01} value={echoFeedback} disabled={!echoEnabled} onChange={(e) => setEchoFeedback(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
             </label>
             <label className="block text-xs">
-              <span className="block text-muted-foreground mb-1">Mix — {Math.round(echoMix * 100)}%</span>
+              <span className="block text-muted-foreground mb-1">Mix (wet/dry) — {Math.round(echoMix * 100)}%</span>
               <input type="range" min={0} max={1} step={0.01} value={echoMix} disabled={!echoEnabled} onChange={(e) => setEchoMix(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">Damping — {(echoDamping/1000).toFixed(1)} kHz</span>
+              <input type="range" min={500} max={12000} step={100} value={echoDamping} disabled={!echoEnabled} onChange={(e) => setEchoDamping(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
             </label>
           </div>
 
+          {/* Mixer presets */}
+          <div className="glass rounded-2xl p-6 space-y-3">
+            <h3 className="font-display text-lg flex items-center gap-2"><Save className="h-4 w-4 text-[color:var(--gold)]" /> Mixer presets</h3>
+            <p className="text-[11px] text-muted-foreground">Save your full mixer chain (EQ, noise filter, echo, levels, fades) as a named preset.</p>
+            <div className="flex gap-2">
+              <input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Preset name" className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button onClick={saveMixerPreset} className="px-3 py-2 rounded-lg bg-gradient-gold text-primary-foreground text-xs font-semibold inline-flex items-center gap-1 btn-shine"><Save className="h-3 w-3" /> Save</button>
+            </div>
+            {Object.keys(presets).length > 0 && (
+              <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                {Object.keys(presets).map((name) => (
+                  <div key={name} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-border text-xs hover:bg-secondary/60">
+                    <button onClick={() => loadMixerPreset(name)} className="flex-1 text-left truncate hover:text-[color:var(--gold)]">{name}</button>
+                    <button onClick={() => deleteMixerPreset(name)} className="text-destructive p-1" aria-label="Delete preset"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
+
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Music4 className="h-4 w-4 text-[color:var(--gold)]" /> Music library</h3>
               <label className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-gold text-primary-foreground cursor-pointer btn-shine">
@@ -768,19 +887,25 @@ function Studio() {
   );
 }
 
-function Meter({ label, icon: Icon, level, color }: { label: string; icon: any; level: number; color: string }) {
+function Meter({ label, icon: Icon, level, peak = 0, clip = false, color }: { label: string; icon: any; level: number; peak?: number; clip?: boolean; color: string }) {
   return (
     <div className="glass rounded-xl p-3">
       <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
         <span className="inline-flex items-center gap-1"><Icon className="h-3 w-3" /> {label}</span>
-        <span className="tabular-nums">{Math.round(level * 100)}%</span>
+        <span className="inline-flex items-center gap-2">
+          {clip && <span className="text-[10px] uppercase font-bold tracking-wider text-red-500 px-1.5 py-0.5 rounded bg-red-500/15 animate-pulse">Clip</span>}
+          <span className="tabular-nums">{Math.round(level * 100)}%</span>
+        </span>
       </div>
-      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+      <div className="relative h-2.5 rounded-full bg-secondary overflow-hidden">
         <div className={`${color} h-full transition-all duration-100`} style={{ width: `${Math.min(100, level * 140)}%` }} />
+        <div className="absolute top-0 bottom-0 w-0.5 bg-white/90 shadow transition-all duration-150" style={{ left: `${Math.min(100, peak * 140)}%` }} />
+        <div className="absolute top-0 bottom-0 right-0 w-[6%] bg-red-500/15 pointer-events-none" />
       </div>
     </div>
   );
 }
+
 
 function Slider({ label, value, onChange }: { label: React.ReactNode; value: number; onChange: (v: number) => void }) {
   return (

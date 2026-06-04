@@ -10,6 +10,8 @@ export interface Track {
   slug?: string;
 }
 
+export const PLAYER_EQ_BANDS = [60, 250, 1000, 4000, 12000];
+
 interface PlayerState {
   current: Track | null;
   queue: Track[];
@@ -20,6 +22,11 @@ interface PlayerState {
   duration: number;
   speed: number;
   volume: number;
+  eqEnabled: boolean;
+  eqGains: number[];
+  setEqEnabled: (v: boolean) => void;
+  setEqGain: (band: number, v: number) => void;
+  resetEq: () => void;
   play: (track: Track, queue?: Track[]) => void;
   toggle: () => void;
   next: () => void;
@@ -31,12 +38,15 @@ interface PlayerState {
   clearQueue: () => void;
 }
 
+
 const Ctx = createContext<PlayerState | null>(null);
 
 const LS_CURRENT = "syz-current-track";
 const LS_QUEUE = "syz-queue";
 const LS_SPEED = "syz-speed";
 const LS_VOLUME = "syz-volume";
+const LS_EQ = "syz-eq";
+
 
 function readLS<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
@@ -49,6 +59,9 @@ function writeLS(key: string, v: unknown) {
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const srcNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
   const userIdRef = useRef<string | null>(null);
   const lastSyncRef = useRef<number>(0);
   const autoPlayRef = useRef<boolean>(false); // only autoplay after user gesture
@@ -61,6 +74,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [speed, setSpeedState] = useState(1);
   const [volume, setVolumeState] = useState(1);
+  const [eqEnabled, setEqEnabledState] = useState(false);
+  const [eqGains, setEqGains] = useState<number[]>(() => PLAYER_EQ_BANDS.map(() => 0));
+
 
   // restore preferences + last track (paused) on mount
   useEffect(() => {
@@ -68,7 +84,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const v = readLS<number>(LS_VOLUME); if (v != null) setVolumeState(v);
     const c = readLS<Track>(LS_CURRENT); if (c) setCurrent(c);
     const q = readLS<Track[]>(LS_QUEUE); if (q) setQueue(q);
+    const eq = readLS<{ enabled: boolean; gains: number[] }>(LS_EQ);
+    if (eq) {
+      setEqEnabledState(!!eq.enabled);
+      if (Array.isArray(eq.gains) && eq.gains.length === PLAYER_EQ_BANDS.length) setEqGains(eq.gains);
+    }
   }, []);
+
 
   // track user id for history sync
   useEffect(() => {
@@ -85,8 +107,34 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = new Audio();
     a.preload = "metadata";
     audioRef.current = a;
+    // Web Audio EQ chain (built once on element creation)
+    try {
+      if (!audioCtxRef.current) {
+        const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (Ctor) audioCtxRef.current = new Ctor();
+      }
+      const actx = audioCtxRef.current;
+      if (actx) {
+        const src = actx.createMediaElementSource(a);
+        srcNodeRef.current = src;
+        const filters = PLAYER_EQ_BANDS.map((freq, i) => {
+          const f = actx.createBiquadFilter();
+          f.type = i === 0 ? "lowshelf" : i === PLAYER_EQ_BANDS.length - 1 ? "highshelf" : "peaking";
+          f.frequency.value = freq;
+          f.Q.value = 1.0;
+          f.gain.value = eqEnabled ? (eqGains[i] ?? 0) : 0;
+          return f;
+        });
+        eqFiltersRef.current = filters;
+        let node: AudioNode = src;
+        for (const f of filters) { node.connect(f); node = f; }
+        node.connect(actx.destination);
+      }
+    } catch { /* fallback: element plays normally */ }
+
     const onTime = () => {
       setPosition(a.currentTime);
+
       // persist position locally
       if (current) {
         try { localStorage.setItem(`syz-pos-${current.id}`, String(a.currentTime)); } catch {}
@@ -177,6 +225,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const play = useCallback((track: Track, q: Track[] = []) => {
     autoPlayRef.current = true;
     setQueue(q);
+    audioCtxRef.current?.resume().catch(() => {});
     // If same track, just play
     const a = audioRef.current;
     if (current && current.id === track.id && a) {
@@ -190,9 +239,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = audioRef.current;
     if (!a || !current) return;
     autoPlayRef.current = true;
+    audioCtxRef.current?.resume().catch(() => {});
     if (a.paused) { a.play().then(() => setPlaying(true)).catch(() => setPlaying(false)); }
     else { a.pause(); setPlaying(false); }
   }, [current]);
+
 
   const next = useCallback(() => {
     autoPlayRef.current = true;
@@ -227,14 +278,34 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const enqueue = useCallback((t: Track) => setQueue((q) => (q.find((x) => x.id === t.id) ? q : [...q, t])), []);
   const clearQueue = useCallback(() => setQueue([]), []);
 
+  // Apply EQ gains live (smooth automation)
+  useEffect(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || eqFiltersRef.current.length === 0) return;
+    eqFiltersRef.current.forEach((f, i) => {
+      const g = eqEnabled ? (eqGains[i] ?? 0) : 0;
+      f.gain.setTargetAtTime(g, ctx.currentTime, 0.05);
+    });
+    writeLS(LS_EQ, { enabled: eqEnabled, gains: eqGains });
+  }, [eqEnabled, eqGains]);
+
+  const setEqEnabled = useCallback((v: boolean) => setEqEnabledState(v), []);
+  const setEqGain = useCallback((band: number, v: number) => {
+    setEqGains((prev) => prev.map((p, i) => (i === band ? v : p)));
+  }, []);
+  const resetEq = useCallback(() => setEqGains(PLAYER_EQ_BANDS.map(() => 0)), []);
+
   const value = useMemo(() => ({
     current, queue, playing, loading, error, position, duration, speed, volume,
+    eqEnabled, eqGains, setEqEnabled, setEqGain, resetEq,
     play, toggle, next, prev, seek, setSpeed, setVolume, enqueue, clearQueue,
   }), [current, queue, playing, loading, error, position, duration, speed, volume,
+      eqEnabled, eqGains, setEqEnabled, setEqGain, resetEq,
       play, toggle, next, prev, seek, setSpeed, setVolume, enqueue, clearQueue]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+
 
 export function usePlayer() {
   const v = useContext(Ctx);
