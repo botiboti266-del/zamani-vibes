@@ -190,33 +190,46 @@ function Studio() {
     if (!micAn) return;
     const micBuf = new Uint8Array(micAn.frequencyBinCount);
     const musicBuf = musicAn ? new Uint8Array(musicAn.frequencyBinCount) : null;
+    let mpHold = 0, muHold = 0;
     const loop = () => {
       micAn.getByteFrequencyData(micBuf);
       if (musicAn && musicBuf) musicAn.getByteFrequencyData(musicBuf);
       const W = canvas.width, H = canvas.height;
       c.clearRect(0, 0, W, H);
       const w = W / micBuf.length;
-      let micSum = 0;
+      let micSum = 0, micMax = 0;
       for (let i = 0; i < micBuf.length; i++) {
-        const h = (micBuf[i] / 255) * H * 0.9;
-        micSum += micBuf[i];
+        const v = micBuf[i];
+        if (v > micMax) micMax = v;
+        const h = (v / 255) * H * 0.9;
+        micSum += v;
         const grad = c.createLinearGradient(0, H - h, 0, H);
         grad.addColorStop(0, "#f5c451");
         grad.addColorStop(1, "#b8860b");
         c.fillStyle = grad;
         c.fillRect(i * w, H - h, w - 1, h);
       }
+      const micPk = micMax / 255;
+      mpHold = Math.max(micPk, mpHold * 0.92);
+      setMicLevel(micSum / micBuf.length / 255);
+      setMicPeak(mpHold);
+      setMicClip(micPk > 0.97);
       if (musicBuf) {
-        let musicSum = 0;
+        let musicSum = 0, musicMax = 0;
         for (let i = 0; i < musicBuf.length; i++) {
-          const h = (musicBuf[i] / 255) * H * 0.5;
-          musicSum += musicBuf[i];
+          const v = musicBuf[i];
+          if (v > musicMax) musicMax = v;
+          const h = (v / 255) * H * 0.5;
+          musicSum += v;
           c.fillStyle = "rgba(96, 165, 250, 0.35)";
           c.fillRect(i * w, H - h, w - 1, h);
         }
+        const musicPk = musicMax / 255;
+        muHold = Math.max(musicPk, muHold * 0.92);
         setMusicLevel(musicSum / musicBuf.length / 255);
+        setMusicPeak(muHold);
+        setMusicClip(musicPk > 0.97);
       }
-      setMicLevel(micSum / micBuf.length / 255);
       rafRef.current = requestAnimationFrame(loop);
     };
     loop();
