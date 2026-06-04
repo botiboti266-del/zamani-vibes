@@ -813,13 +813,37 @@ function Studio() {
               <input type="range" min={0} max={0.9} step={0.01} value={echoFeedback} disabled={!echoEnabled} onChange={(e) => setEchoFeedback(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
             </label>
             <label className="block text-xs">
-              <span className="block text-muted-foreground mb-1">Mix — {Math.round(echoMix * 100)}%</span>
+              <span className="block text-muted-foreground mb-1">Mix (wet/dry) — {Math.round(echoMix * 100)}%</span>
               <input type="range" min={0} max={1} step={0.01} value={echoMix} disabled={!echoEnabled} onChange={(e) => setEchoMix(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
+            </label>
+            <label className="block text-xs">
+              <span className="block text-muted-foreground mb-1">Damping — {(echoDamping/1000).toFixed(1)} kHz</span>
+              <input type="range" min={500} max={12000} step={100} value={echoDamping} disabled={!echoEnabled} onChange={(e) => setEchoDamping(Number(e.target.value))} className="w-full accent-[color:var(--gold)]" />
             </label>
           </div>
 
+          {/* Mixer presets */}
+          <div className="glass rounded-2xl p-6 space-y-3">
+            <h3 className="font-display text-lg flex items-center gap-2"><Save className="h-4 w-4 text-[color:var(--gold)]" /> Mixer presets</h3>
+            <p className="text-[11px] text-muted-foreground">Save your full mixer chain (EQ, noise filter, echo, levels, fades) as a named preset.</p>
+            <div className="flex gap-2">
+              <input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Preset name" className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button onClick={saveMixerPreset} className="px-3 py-2 rounded-lg bg-gradient-gold text-primary-foreground text-xs font-semibold inline-flex items-center gap-1 btn-shine"><Save className="h-3 w-3" /> Save</button>
+            </div>
+            {Object.keys(presets).length > 0 && (
+              <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                {Object.keys(presets).map((name) => (
+                  <div key={name} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-border text-xs hover:bg-secondary/60">
+                    <button onClick={() => loadMixerPreset(name)} className="flex-1 text-left truncate hover:text-[color:var(--gold)]">{name}</button>
+                    <button onClick={() => deleteMixerPreset(name)} className="text-destructive p-1" aria-label="Delete preset"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
+
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Music4 className="h-4 w-4 text-[color:var(--gold)]" /> Music library</h3>
               <label className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-gold text-primary-foreground cursor-pointer btn-shine">
