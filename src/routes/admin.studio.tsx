@@ -41,6 +41,7 @@ function Studio() {
   const echoDelayRef = useRef<DelayNode | null>(null);
   const echoFeedbackRef = useRef<GainNode | null>(null);
   const echoWetRef = useRef<GainNode | null>(null);
+  const echoLpfRef = useRef<BiquadFilterNode | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const musicAnalyserRef = useRef<AnalyserNode | null>(null);
   const musicElRef = useRef<HTMLAudioElement | null>(null);
