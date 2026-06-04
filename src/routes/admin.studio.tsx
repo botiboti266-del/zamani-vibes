@@ -623,8 +623,9 @@ function Studio() {
             <canvas ref={canvasRef} width={800} height={160} className="w-full h-40 rounded-xl bg-secondary/40" />
 
             <div className="grid grid-cols-2 gap-3">
-              <Meter label="Mic" icon={Mic} level={micLevel} color="bg-gradient-gold" />
-              <Meter label="Music" icon={Music2} level={musicLevel} color="bg-blue-500" />
+              <Meter label="Mic" icon={Mic} level={micLevel} peak={micPeak} clip={micClip} color="bg-gradient-gold" />
+              <Meter label="Music" icon={Music2} level={musicLevel} peak={musicPeak} clip={musicClip} color="bg-blue-500" />
+
             </div>
 
             <div className="text-center font-display text-5xl tabular-nums">{mm}:{ss}</div>
