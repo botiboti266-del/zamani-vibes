@@ -679,6 +679,8 @@ function Studio() {
                 <div className="flex flex-wrap gap-2 justify-end">
                   <button onClick={aiNotes} disabled={aiBusy} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm">{aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} AI show notes</button>
                   <a href={url} download={`recording-${Date.now()}.${blob?.type.includes("wav") ? "wav" : "webm"}`} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Download className="h-4 w-4" /> Download</a>
+                  <button onClick={exportWav} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Download className="h-4 w-4" /> Export WAV</button>
+
                   <button onClick={reset} className="px-5 py-2.5 rounded-full bg-secondary inline-flex items-center gap-2 text-sm"><Trash2 className="h-4 w-4" /> Discard</button>
                   <button onClick={upload} disabled={uploading} className="px-5 py-2.5 rounded-full bg-gradient-gold text-primary-foreground font-semibold btn-shine inline-flex items-center gap-2">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save as draft</button>
                 </div>
