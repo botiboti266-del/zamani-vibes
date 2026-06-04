@@ -96,6 +96,14 @@ export function EpisodePlayer({
             <Volume2 className="h-4 w-4 text-muted-foreground" />
             <input type="range" min={0} max={1} step={0.01} value={player.volume} onChange={(e) => player.setVolume(Number(e.target.value))} className="w-20 accent-[color:var(--gold)]" aria-label="Volume" />
           </label>
+          <button
+            onClick={() => setEqOpen((v) => !v)}
+            className={`h-10 w-10 rounded-full glass hover:bg-secondary inline-flex items-center justify-center ${player.eqEnabled ? "text-[color:var(--gold)]" : ""}`}
+            aria-label="Equalizer"
+            title="Equalizer"
+          >
+            <Sliders className="h-4 w-4" />
+          </button>
           {onShare && <button onClick={onShare} className="h-10 w-10 rounded-full glass hover:bg-secondary inline-flex items-center justify-center" aria-label="Share episode"><Share2 className="h-4 w-4" /></button>}
           <a href={track.audioUrl} download className="h-10 w-10 rounded-full glass hover:bg-secondary inline-flex items-center justify-center" aria-label="Download episode"><Download className="h-4 w-4" /></a>
           {showDetailLink && track.slug && (
@@ -105,6 +113,56 @@ export function EpisodePlayer({
           )}
         </div>
       </div>
+
+      {eqOpen && (
+        <div className="mt-4 pt-4 border-t border-border/40">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-sm font-semibold inline-flex items-center gap-2">
+              <Sliders className="h-4 w-4 text-[color:var(--gold)]" /> Equalizer
+            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              {Object.entries(EQ_PRESETS).map(([name, gains]) => (
+                <button
+                  key={name}
+                  onClick={() => gains.forEach((g, i) => player.setEqGain(i, g))}
+                  className="text-[11px] px-2.5 py-1 rounded-full bg-secondary hover:bg-[color:var(--gold)]/15 hover:text-[color:var(--gold)] transition"
+                >
+                  {name}
+                </button>
+              ))}
+              <label className="text-xs inline-flex items-center gap-2 ml-2">
+                <input
+                  type="checkbox"
+                  checked={player.eqEnabled}
+                  onChange={(e) => player.setEqEnabled(e.target.checked)}
+                />
+                <span>{player.eqEnabled ? "On" : "Off"}</span>
+              </label>
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {PLAYER_EQ_BANDS.map((freq, i) => (
+              <div key={freq} className="flex flex-col items-center gap-1.5">
+                <span className="text-[10px] tabular-nums text-muted-foreground">
+                  {(player.eqGains[i] ?? 0) > 0 ? "+" : ""}{(player.eqGains[i] ?? 0).toFixed(0)}dB
+                </span>
+                <input
+                  type="range"
+                  min={-12}
+                  max={12}
+                  step={0.5}
+                  value={player.eqGains[i] ?? 0}
+                  disabled={!player.eqEnabled}
+                  onChange={(e) => player.setEqGain(i, Number(e.target.value))}
+                  className="accent-[color:var(--gold)] disabled:opacity-40"
+                  style={{ writingMode: "vertical-lr" as any, WebkitAppearance: "slider-vertical" as any, height: 90, width: 20 }}
+                />
+                <span className="text-[10px] text-muted-foreground">{freq >= 1000 ? `${freq / 1000}k` : freq}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
