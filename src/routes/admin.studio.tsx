@@ -689,7 +689,7 @@ function Studio() {
           </div>
 
           {/* 8-Band EQ */}
-          <div className="glass rounded-2xl p-5">
+          <div className="glass rounded-2xl p-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display text-lg flex items-center gap-2"><Sliders className="h-4 w-4 text-[color:var(--gold)]" /> 8-band equalizer</h3>
               <button onClick={() => setEqGains(EQ_BANDS.map(() => 0))} className="text-xs px-3 py-1 rounded-full bg-secondary">Reset</button>
@@ -715,7 +715,7 @@ function Studio() {
           </div>
 
           {/* FX pads */}
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Zap className="h-4 w-4 text-[color:var(--gold)]" /> FX & brand pads</h3>
               <label className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-gold text-primary-foreground cursor-pointer btn-shine">
@@ -745,7 +745,7 @@ function Studio() {
 
         {/* Right column: mixer + music library */}
         <div className="space-y-4">
-          <div className="glass rounded-2xl p-5 space-y-4">
+          <div className="glass rounded-2xl p-6 space-y-4">
             <h3 className="font-display text-lg flex items-center gap-2"><Headphones className="h-4 w-4 text-[color:var(--gold)]" /> Mixer</h3>
             <Slider label={<><Mic className="h-3.5 w-3.5 inline mr-1" /> Mic volume — {peak(micVolume)}%</>} value={micVolume} onChange={setMicVolume} />
             <Slider label={<><Music2 className="h-3.5 w-3.5 inline mr-1" /> Music volume — {peak(musicVolume)}%</>} value={musicVolume} onChange={setMusicVolume} />
@@ -769,7 +769,7 @@ function Studio() {
           </div>
 
           {/* Noise filter */}
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Sliders className="h-4 w-4 text-[color:var(--gold)]" /> Noise filter</h3>
               <label className="text-xs inline-flex items-center gap-2">
@@ -795,7 +795,7 @@ function Studio() {
           </div>
 
           {/* Echo */}
-          <div className="glass rounded-2xl p-5 space-y-3">
+          <div className="glass rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg flex items-center gap-2"><Radio className="h-4 w-4 text-[color:var(--gold)]" /> Echo</h3>
               <label className="text-xs inline-flex items-center gap-2">
