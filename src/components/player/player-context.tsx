@@ -45,6 +45,8 @@ const LS_CURRENT = "syz-current-track";
 const LS_QUEUE = "syz-queue";
 const LS_SPEED = "syz-speed";
 const LS_VOLUME = "syz-volume";
+const LS_EQ = "syz-eq";
+
 
 function readLS<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
