@@ -279,6 +279,54 @@ export type Database = {
           },
         ]
       }
+      news: {
+        Row: {
+          author_id: string | null
+          content: string
+          cover_image: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published_at: string | null
+          scheduled_for: string | null
+          slug: string
+          status: Database["public"]["Enums"]["content_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          content?: string
+          cover_image?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["content_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          cover_image?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["content_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           confirmed: boolean

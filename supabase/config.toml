@@ -4,7 +4,13 @@ project_id = "pypdsuyrktiopzfqcibd"
 verify_jwt = false
 
 [functions.notify-new-episode]
-verify_jwt = true
+verify_jwt = false
+
+[functions.notify-new-blog]
+verify_jwt = false
+
+[functions.notify-new-news]
+verify_jwt = false
 
 [functions.generate-daily-vibe]
 verify_jwt = false
