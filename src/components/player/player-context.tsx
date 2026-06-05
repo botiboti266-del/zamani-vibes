@@ -101,36 +101,46 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Lazily build the Web Audio EQ graph the FIRST time EQ is enabled.
+  // Until then, the <audio> element plays natively through the default output
+  // (creating a MediaElementSource would route audio exclusively through Web
+  // Audio, which is silent until the AudioContext resumes from a gesture).
+  const ensureEqGraph = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const a = audioRef.current;
+    if (!a || srcNodeRef.current) return;
+    try {
+      if (!audioCtxRef.current) {
+        const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!Ctor) return;
+        audioCtxRef.current = new Ctor();
+      }
+      const actx = audioCtxRef.current!;
+      const src = actx.createMediaElementSource(a);
+      srcNodeRef.current = src;
+      const filters = PLAYER_EQ_BANDS.map((freq, i) => {
+        const f = actx.createBiquadFilter();
+        f.type = i === 0 ? "lowshelf" : i === PLAYER_EQ_BANDS.length - 1 ? "highshelf" : "peaking";
+        f.frequency.value = freq;
+        f.Q.value = 1.0;
+        f.gain.value = eqGains[i] ?? 0;
+        return f;
+      });
+      eqFiltersRef.current = filters;
+      let node: AudioNode = src;
+      for (const f of filters) { node.connect(f); node = f; }
+      node.connect(actx.destination);
+      actx.resume().catch(() => {});
+    } catch { /* fallback: element plays normally */ }
+  }, [eqGains]);
+
   // create audio element on client
   useEffect(() => {
     if (typeof window === "undefined") return;
     const a = new Audio();
     a.preload = "metadata";
+    a.crossOrigin = "anonymous";
     audioRef.current = a;
-    // Web Audio EQ chain (built once on element creation)
-    try {
-      if (!audioCtxRef.current) {
-        const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
-        if (Ctor) audioCtxRef.current = new Ctor();
-      }
-      const actx = audioCtxRef.current;
-      if (actx) {
-        const src = actx.createMediaElementSource(a);
-        srcNodeRef.current = src;
-        const filters = PLAYER_EQ_BANDS.map((freq, i) => {
-          const f = actx.createBiquadFilter();
-          f.type = i === 0 ? "lowshelf" : i === PLAYER_EQ_BANDS.length - 1 ? "highshelf" : "peaking";
-          f.frequency.value = freq;
-          f.Q.value = 1.0;
-          f.gain.value = eqEnabled ? (eqGains[i] ?? 0) : 0;
-          return f;
-        });
-        eqFiltersRef.current = filters;
-        let node: AudioNode = src;
-        for (const f of filters) { node.connect(f); node = f; }
-        node.connect(actx.destination);
-      }
-    } catch { /* fallback: element plays normally */ }
 
     const onTime = () => {
       setPosition(a.currentTime);
@@ -278,16 +288,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const enqueue = useCallback((t: Track) => setQueue((q) => (q.find((x) => x.id === t.id) ? q : [...q, t])), []);
   const clearQueue = useCallback(() => setQueue([]), []);
 
-  // Apply EQ gains live (smooth automation)
+  // Apply EQ gains live. Build the Web Audio graph lazily the first time
+  // EQ is turned on so audio plays natively until the user opts in.
   useEffect(() => {
+    if (eqEnabled) ensureEqGraph();
     const ctx = audioCtxRef.current;
-    if (!ctx || eqFiltersRef.current.length === 0) return;
+    if (!ctx || eqFiltersRef.current.length === 0) {
+      writeLS(LS_EQ, { enabled: eqEnabled, gains: eqGains });
+      return;
+    }
+    ctx.resume().catch(() => {});
     eqFiltersRef.current.forEach((f, i) => {
       const g = eqEnabled ? (eqGains[i] ?? 0) : 0;
       f.gain.setTargetAtTime(g, ctx.currentTime, 0.05);
     });
     writeLS(LS_EQ, { enabled: eqEnabled, gains: eqGains });
-  }, [eqEnabled, eqGains]);
+  }, [eqEnabled, eqGains, ensureEqGraph]);
 
   const setEqEnabled = useCallback((v: boolean) => setEqEnabledState(v), []);
   const setEqGain = useCallback((band: number, v: number) => {
