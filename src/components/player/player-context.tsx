@@ -288,16 +288,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const enqueue = useCallback((t: Track) => setQueue((q) => (q.find((x) => x.id === t.id) ? q : [...q, t])), []);
   const clearQueue = useCallback(() => setQueue([]), []);
 
-  // Apply EQ gains live (smooth automation)
+  // Apply EQ gains live. Build the Web Audio graph lazily the first time
+  // EQ is turned on so audio plays natively until the user opts in.
   useEffect(() => {
+    if (eqEnabled) ensureEqGraph();
     const ctx = audioCtxRef.current;
-    if (!ctx || eqFiltersRef.current.length === 0) return;
+    if (!ctx || eqFiltersRef.current.length === 0) {
+      writeLS(LS_EQ, { enabled: eqEnabled, gains: eqGains });
+      return;
+    }
+    ctx.resume().catch(() => {});
     eqFiltersRef.current.forEach((f, i) => {
       const g = eqEnabled ? (eqGains[i] ?? 0) : 0;
       f.gain.setTargetAtTime(g, ctx.currentTime, 0.05);
     });
     writeLS(LS_EQ, { enabled: eqEnabled, gains: eqGains });
-  }, [eqEnabled, eqGains]);
+  }, [eqEnabled, eqGains, ensureEqGraph]);
 
   const setEqEnabled = useCallback((v: boolean) => setEqEnabledState(v), []);
   const setEqGain = useCallback((band: number, v: number) => {
