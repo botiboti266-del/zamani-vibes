@@ -49,7 +49,7 @@ async function fetchHome() {
 
 function Home() {
   const { data } = useQuery({ queryKey: ["home"], queryFn: fetchHome });
-  const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], hero: null as any, banner: null as any };
+  const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], videos: [] as any[], hero: null as any, banner: null as any };
   const hero = d.hero;
   const banner = d.banner;
   const latestTrack: Track | null = d.latest[0]?.audio_url
