@@ -659,6 +659,66 @@ export type Database = {
         }
         Relationships: []
       }
+      videos: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          description: string | null
+          duration: number | null
+          id: string
+          is_short: boolean
+          published_at: string | null
+          scheduled_for: string | null
+          slug: string
+          source_type: string
+          source_url: string
+          status: Database["public"]["Enums"]["content_status"]
+          tags: string[] | null
+          thumbnail: string | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_short?: boolean
+          published_at?: string | null
+          scheduled_for?: string | null
+          slug: string
+          source_type?: string
+          source_url: string
+          status?: Database["public"]["Enums"]["content_status"]
+          tags?: string[] | null
+          thumbnail?: string | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_short?: boolean
+          published_at?: string | null
+          scheduled_for?: string | null
+          slug?: string
+          source_type?: string
+          source_url?: string
+          status?: Database["public"]["Enums"]["content_status"]
+          tags?: string[] | null
+          thumbnail?: string | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
