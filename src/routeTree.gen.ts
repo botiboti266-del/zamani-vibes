@@ -15,6 +15,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PodcastsRouteImport } from './routes/podcasts'
+import { Route as LiveRouteImport } from './routes/live'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -23,11 +24,14 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VideosIndexRouteImport } from './routes/videos.index'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as VideosSlugRouteImport } from './routes/videos.$slug'
 import { Route as PodcastsSlugRouteImport } from './routes/podcasts.$slug'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AdminVideosRouteImport } from './routes/admin.videos'
 import { Route as AdminVibesRouteImport } from './routes/admin.vibes'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSubscribersRouteImport } from './routes/admin.subscribers'
@@ -37,6 +41,7 @@ import { Route as AdminPodcastsRouteImport } from './routes/admin.podcasts'
 import { Route as AdminPlaysRouteImport } from './routes/admin.plays'
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
+import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
@@ -80,6 +85,11 @@ const PodcastsRoute = PodcastsRouteImport.update({
   path: '/podcasts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveRoute = LiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -120,6 +130,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VideosIndexRoute = VideosIndexRouteImport.update({
+  id: '/videos/',
+  path: '/videos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NewsIndexRoute = NewsIndexRouteImport.update({
   id: '/news/',
   path: '/news/',
@@ -129,6 +144,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const VideosSlugRoute = VideosSlugRouteImport.update({
+  id: '/videos/$slug',
+  path: '/videos/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PodcastsSlugRoute = PodcastsSlugRouteImport.update({
   id: '/$slug',
@@ -144,6 +164,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => BlogRoute,
+} as any)
+const AdminVideosRoute = AdminVideosRouteImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminVibesRoute = AdminVibesRouteImport.update({
   id: '/vibes',
@@ -188,6 +213,11 @@ const AdminNewsRoute = AdminNewsRouteImport.update({
 const AdminMessagesRoute = AdminMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLiveRoute = AdminLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminHomepageRoute = AdminHomepageRouteImport.update({
@@ -260,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/history': typeof HistoryRoute
+  '/live': typeof LiveRoute
   '/podcasts': typeof PodcastsRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -272,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/admin/homepage': typeof AdminHomepageRoute
+  '/admin/live': typeof AdminLiveRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/plays': typeof AdminPlaysRoute
@@ -281,11 +313,14 @@ export interface FileRoutesByFullPath {
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/vibes': typeof AdminVibesRoute
+  '/admin/videos': typeof AdminVideosRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/podcasts/$slug': typeof PodcastsSlugRoute
+  '/videos/$slug': typeof VideosSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/videos/': typeof VideosIndexRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/blog/new': typeof AdminBlogNewRoute
   '/admin/podcasts/$id': typeof AdminPodcastsIdRoute
@@ -301,6 +336,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/history': typeof HistoryRoute
+  '/live': typeof LiveRoute
   '/podcasts': typeof PodcastsRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -312,6 +348,7 @@ export interface FileRoutesByTo {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/admin/homepage': typeof AdminHomepageRoute
+  '/admin/live': typeof AdminLiveRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/plays': typeof AdminPlaysRoute
@@ -320,11 +357,14 @@ export interface FileRoutesByTo {
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/vibes': typeof AdminVibesRoute
+  '/admin/videos': typeof AdminVideosRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/podcasts/$slug': typeof PodcastsSlugRoute
+  '/videos/$slug': typeof VideosSlugRoute
   '/admin': typeof AdminIndexRoute
   '/news': typeof NewsIndexRoute
+  '/videos': typeof VideosIndexRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/blog/new': typeof AdminBlogNewRoute
   '/admin/podcasts/$id': typeof AdminPodcastsIdRoute
@@ -342,6 +382,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/history': typeof HistoryRoute
+  '/live': typeof LiveRoute
   '/podcasts': typeof PodcastsRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -354,6 +395,7 @@ export interface FileRoutesById {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/admin/homepage': typeof AdminHomepageRoute
+  '/admin/live': typeof AdminLiveRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/plays': typeof AdminPlaysRoute
@@ -363,11 +405,14 @@ export interface FileRoutesById {
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/vibes': typeof AdminVibesRoute
+  '/admin/videos': typeof AdminVideosRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/podcasts/$slug': typeof PodcastsSlugRoute
+  '/videos/$slug': typeof VideosSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/videos/': typeof VideosIndexRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/blog/new': typeof AdminBlogNewRoute
   '/admin/podcasts/$id': typeof AdminPodcastsIdRoute
@@ -386,6 +431,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/history'
+    | '/live'
     | '/podcasts'
     | '/privacy'
     | '/robots.txt'
@@ -398,6 +444,7 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/comments'
     | '/admin/homepage'
+    | '/admin/live'
     | '/admin/messages'
     | '/admin/news'
     | '/admin/plays'
@@ -407,11 +454,14 @@ export interface FileRouteTypes {
     | '/admin/subscribers'
     | '/admin/users'
     | '/admin/vibes'
+    | '/admin/videos'
     | '/blog/$slug'
     | '/news/$slug'
     | '/podcasts/$slug'
+    | '/videos/$slug'
     | '/admin/'
     | '/news/'
+    | '/videos/'
     | '/admin/blog/$id'
     | '/admin/blog/new'
     | '/admin/podcasts/$id'
@@ -427,6 +477,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/history'
+    | '/live'
     | '/podcasts'
     | '/privacy'
     | '/robots.txt'
@@ -438,6 +489,7 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/comments'
     | '/admin/homepage'
+    | '/admin/live'
     | '/admin/messages'
     | '/admin/news'
     | '/admin/plays'
@@ -446,11 +498,14 @@ export interface FileRouteTypes {
     | '/admin/subscribers'
     | '/admin/users'
     | '/admin/vibes'
+    | '/admin/videos'
     | '/blog/$slug'
     | '/news/$slug'
     | '/podcasts/$slug'
+    | '/videos/$slug'
     | '/admin'
     | '/news'
+    | '/videos'
     | '/admin/blog/$id'
     | '/admin/blog/new'
     | '/admin/podcasts/$id'
@@ -467,6 +522,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/history'
+    | '/live'
     | '/podcasts'
     | '/privacy'
     | '/robots.txt'
@@ -479,6 +535,7 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/comments'
     | '/admin/homepage'
+    | '/admin/live'
     | '/admin/messages'
     | '/admin/news'
     | '/admin/plays'
@@ -488,11 +545,14 @@ export interface FileRouteTypes {
     | '/admin/subscribers'
     | '/admin/users'
     | '/admin/vibes'
+    | '/admin/videos'
     | '/blog/$slug'
     | '/news/$slug'
     | '/podcasts/$slug'
+    | '/videos/$slug'
     | '/admin/'
     | '/news/'
+    | '/videos/'
     | '/admin/blog/$id'
     | '/admin/blog/new'
     | '/admin/podcasts/$id'
@@ -510,6 +570,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   HistoryRoute: typeof HistoryRoute
+  LiveRoute: typeof LiveRoute
   PodcastsRoute: typeof PodcastsRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -517,7 +578,9 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VibesRoute: typeof VibesRoute
   NewsSlugRoute: typeof NewsSlugRoute
+  VideosSlugRoute: typeof VideosSlugRoute
   NewsIndexRoute: typeof NewsIndexRoute
+  VideosIndexRoute: typeof VideosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -562,6 +625,13 @@ declare module '@tanstack/react-router' {
       path: '/podcasts'
       fullPath: '/podcasts'
       preLoaderRoute: typeof PodcastsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live': {
+      id: '/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof LiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -620,6 +690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/videos/': {
+      id: '/videos/'
+      path: '/videos'
+      fullPath: '/videos/'
+      preLoaderRoute: typeof VideosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/news/': {
       id: '/news/'
       path: '/news'
@@ -633,6 +710,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/videos/$slug': {
+      id: '/videos/$slug'
+      path: '/videos/$slug'
+      fullPath: '/videos/$slug'
+      preLoaderRoute: typeof VideosSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/podcasts/$slug': {
       id: '/podcasts/$slug'
@@ -654,6 +738,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
+    }
+    '/admin/videos': {
+      id: '/admin/videos'
+      path: '/videos'
+      fullPath: '/admin/videos'
+      preLoaderRoute: typeof AdminVideosRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/vibes': {
       id: '/admin/vibes'
@@ -716,6 +807,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/admin/messages'
       preLoaderRoute: typeof AdminMessagesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/live': {
+      id: '/admin/live'
+      path: '/live'
+      fullPath: '/admin/live'
+      preLoaderRoute: typeof AdminLiveRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/homepage': {
@@ -844,6 +942,7 @@ interface AdminRouteChildren {
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
   AdminHomepageRoute: typeof AdminHomepageRoute
+  AdminLiveRoute: typeof AdminLiveRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNewsRoute: typeof AdminNewsRoute
   AdminPlaysRoute: typeof AdminPlaysRoute
@@ -853,6 +952,7 @@ interface AdminRouteChildren {
   AdminSubscribersRoute: typeof AdminSubscribersRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminVibesRoute: typeof AdminVibesRoute
+  AdminVideosRoute: typeof AdminVideosRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -863,6 +963,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCommentsRoute: AdminCommentsRoute,
   AdminHomepageRoute: AdminHomepageRoute,
+  AdminLiveRoute: AdminLiveRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNewsRoute: AdminNewsRoute,
   AdminPlaysRoute: AdminPlaysRoute,
@@ -872,6 +973,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSubscribersRoute: AdminSubscribersRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminVibesRoute: AdminVibesRoute,
+  AdminVideosRoute: AdminVideosRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -908,6 +1010,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   HistoryRoute: HistoryRoute,
+  LiveRoute: LiveRoute,
   PodcastsRoute: PodcastsRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
@@ -915,7 +1018,9 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VibesRoute: VibesRoute,
   NewsSlugRoute: NewsSlugRoute,
+  VideosSlugRoute: VideosSlugRoute,
   NewsIndexRoute: NewsIndexRoute,
+  VideosIndexRoute: VideosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

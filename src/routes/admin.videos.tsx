@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Edit, Trash2, Eye, X, Film, Youtube, Link as LinkIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, X, Film, Tv2, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { slugify } from "@/lib/slug";
 import { VideoPlayer } from "@/components/video/video-player";
@@ -213,7 +213,7 @@ function Editor({ editing, setEditing, save }: { editing: Partial<Row>; setEditi
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
             <button onClick={() => save("draft")} className="px-4 py-2 rounded-full bg-secondary text-sm">Save draft</button>
             <button onClick={() => save("scheduled")} disabled={!editing.scheduled_for} className="px-4 py-2 rounded-full bg-secondary text-sm disabled:opacity-50">Schedule</button>
-            <button onClick={() => save("published")} className="px-5 py-2 rounded-full bg-gradient-gold text-primary-foreground text-sm font-semibold btn-shine inline-flex items-center gap-1"><Youtube className="h-4 w-4" /> Publish</button>
+            <button onClick={() => save("published")} className="px-5 py-2 rounded-full bg-gradient-gold text-primary-foreground text-sm font-semibold btn-shine inline-flex items-center gap-1"><Tv2 className="h-4 w-4" /> Publish</button>
           </div>
         </div>
       </div>

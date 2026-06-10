@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
 });
 
 async function fetchHome() {
-  const [featured, trending, latest, categories, posts, settings] = await Promise.all([
+  const [featured, trending, latest, categories, posts, settings, videos] = await Promise.all([
     supabase.from("podcasts").select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name)")
       .eq("status", "published").eq("featured", true).order("published_at", { ascending: false }).limit(3),
     supabase.from("podcasts").select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name)")
@@ -32,6 +32,7 @@ async function fetchHome() {
     supabase.from("podcast_categories").select("*").order("name"),
     supabase.from("blog_posts").select("id,title,slug,excerpt,cover_image,reading_minutes,published_at").eq("status", "published").order("published_at", { ascending: false }).limit(3),
     supabase.from("site_settings").select("value").eq("key", "homepage").maybeSingle(),
+    (supabase as any).from("videos").select("id,title,slug,description,thumbnail,source_url,source_type,is_short,duration").eq("status", "published").order("published_at", { ascending: false }).limit(8),
   ]);
   const cfg = (settings.data?.value as any) ?? {};
   return {
@@ -40,6 +41,7 @@ async function fetchHome() {
     latest: (latest.data ?? []) as PodcastCardData[],
     categories: categories.data ?? [],
     posts: posts.data ?? [],
+    videos: (videos.data ?? []) as any[],
     hero: cfg.hero ?? null,
     banner: cfg.banner ?? null,
   };
