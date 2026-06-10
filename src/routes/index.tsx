@@ -162,6 +162,15 @@ function Home() {
         )}
       </Section>
 
+      {/* Videos */}
+      {d.videos.length > 0 && (
+        <Section title={<><Film className="inline h-7 w-7 text-[color:var(--gold)]" /> Latest videos</>} subtitle="Watch the moment" link={{ to: "/videos", label: "All videos" }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {d.videos.slice(0, 4).map((v) => <VideoCard key={v.id} video={v} />)}
+          </div>
+        </Section>
+      )}
+
       {/* Blog */}
       {d.posts.length > 0 && (
         <Section title="From the blog" subtitle="Stories worth reading" link={{ to: "/blog", label: "Read more" }}>
