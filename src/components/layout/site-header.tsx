@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, X, Search, Sun, Moon, Radio, LogOut, User as UserIcon } from "lucide-react";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/podcasts", label: "Podcasts" },
+  { to: "/videos", label: "Videos" },
   { to: "/vibes", label: "Vibes" },
   { to: "/blog", label: "Blog" },
   { to: "/news", label: "News" },
@@ -21,6 +23,13 @@ export function SiteHeader() {
   const [q, setQ] = useState("");
   const nav = useNavigate();
   const { user, isAdmin } = useAuth();
+
+  const liveQ = useQuery({
+    queryKey: ["live-banner"],
+    queryFn: async () => (await supabase.from("site_settings").select("value").eq("key", "live_stream").maybeSingle()).data,
+    refetchInterval: 30000,
+  });
+  const isLive = !!(liveQ.data?.value as any)?.active;
 
   useEffect(() => {
     const t = getStoredTheme();
@@ -78,6 +87,19 @@ export function SiteHeader() {
         </form>
 
         <div className="flex items-center gap-2 ml-auto lg:ml-2">
+          {isLive && (
+            <Link
+              to="/live"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/15 text-red-500 text-xs font-bold uppercase tracking-widest hover:bg-red-500/25 transition"
+              title="Tune in live"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+              </span>
+              Live
+            </Link>
+          )}
           <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-secondary transition" aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
@@ -120,6 +142,12 @@ export function SiteHeader() {
 
       {open && (
         <div className="md:hidden border-t border-border/50 px-4 py-3 space-y-1 animate-fade-up">
+          {isLive && (
+            <Link to="/live" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/15 text-red-500 text-sm font-bold">
+              <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" /><span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" /></span>
+              Listen Live
+            </Link>
+          )}
           {NAV.map((n) => (
             <Link
               key={n.to}

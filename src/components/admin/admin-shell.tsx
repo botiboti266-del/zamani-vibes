@@ -1,13 +1,15 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Mic, FileText, MessageSquare, Mail, Users,
-  Tag, Music4, BarChart3, Inbox, Home, Globe, Sparkles, Headphones, Bot, Newspaper,
+  Tag, Music4, BarChart3, Inbox, Home, Globe, Sparkles, Headphones, Bot, Newspaper, Film, Radio,
 } from "lucide-react";
 
 const ITEMS = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/admin/homepage", label: "Homepage", icon: Home },
   { to: "/admin/podcasts", label: "Podcasts", icon: Mic },
+  { to: "/admin/videos", label: "Videos", icon: Film },
+  { to: "/admin/live", label: "Live on Air", icon: Radio },
   { to: "/admin/blog", label: "Blog", icon: FileText },
   { to: "/admin/news", label: "News", icon: Newspaper },
   { to: "/admin/vibes", label: "Daily Vibes", icon: Sparkles },

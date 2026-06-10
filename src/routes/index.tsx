@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PodcastCard, type PodcastCardData } from "@/components/podcast/podcast-card";
 import { EpisodePlayer } from "@/components/player/episode-player";
 import type { Track } from "@/components/player/player-context";
-import { ArrowRight, Sparkles, TrendingUp, Headphones, Radio } from "lucide-react";
+import { ArrowRight, Sparkles, TrendingUp, Headphones, Radio, Film } from "lucide-react";
+import { VideoCard } from "@/components/video/video-card";
 import heroImg from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/")({
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/")({
 });
 
 async function fetchHome() {
-  const [featured, trending, latest, categories, posts, settings] = await Promise.all([
+  const [featured, trending, latest, categories, posts, settings, videos] = await Promise.all([
     supabase.from("podcasts").select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name)")
       .eq("status", "published").eq("featured", true).order("published_at", { ascending: false }).limit(3),
     supabase.from("podcasts").select("id,title,slug,description,cover_image,audio_url,duration,listen_count,category:podcast_categories(name)")
@@ -32,6 +33,7 @@ async function fetchHome() {
     supabase.from("podcast_categories").select("*").order("name"),
     supabase.from("blog_posts").select("id,title,slug,excerpt,cover_image,reading_minutes,published_at").eq("status", "published").order("published_at", { ascending: false }).limit(3),
     supabase.from("site_settings").select("value").eq("key", "homepage").maybeSingle(),
+    (supabase as any).from("videos").select("id,title,slug,description,thumbnail,source_url,source_type,is_short,duration").eq("status", "published").order("published_at", { ascending: false }).limit(8),
   ]);
   const cfg = (settings.data?.value as any) ?? {};
   return {
@@ -40,6 +42,7 @@ async function fetchHome() {
     latest: (latest.data ?? []) as PodcastCardData[],
     categories: categories.data ?? [],
     posts: posts.data ?? [],
+    videos: (videos.data ?? []) as any[],
     hero: cfg.hero ?? null,
     banner: cfg.banner ?? null,
   };
@@ -47,7 +50,7 @@ async function fetchHome() {
 
 function Home() {
   const { data } = useQuery({ queryKey: ["home"], queryFn: fetchHome });
-  const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], hero: null as any, banner: null as any };
+  const d = data ?? { featured: [], trending: [], latest: [], categories: [], posts: [], videos: [] as any[], hero: null as any, banner: null as any };
   const hero = d.hero;
   const banner = d.banner;
   const latestTrack: Track | null = d.latest[0]?.audio_url
@@ -158,6 +161,15 @@ function Home() {
           </div>
         )}
       </Section>
+
+      {/* Videos */}
+      {d.videos.length > 0 && (
+        <Section title={<><Film className="inline h-7 w-7 text-[color:var(--gold)]" /> Latest videos</>} subtitle="Watch the moment" link={{ to: "/videos", label: "All videos" }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {d.videos.slice(0, 4).map((v) => <VideoCard key={v.id} video={v} />)}
+          </div>
+        </Section>
+      )}
 
       {/* Blog */}
       {d.posts.length > 0 && (
