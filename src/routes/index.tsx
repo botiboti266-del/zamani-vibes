@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PodcastCard, type PodcastCardData } from "@/components/podcast/podcast-card";
 import { EpisodePlayer } from "@/components/player/episode-player";
 import type { Track } from "@/components/player/player-context";
-import { ArrowRight, Sparkles, TrendingUp, Headphones, Radio } from "lucide-react";
+import { ArrowRight, Sparkles, TrendingUp, Headphones, Radio, Film } from "lucide-react";
+import { VideoCard } from "@/components/video/video-card";
 import heroImg from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/")({
